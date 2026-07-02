@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PullRequestHandler(c *gin.Context) {
+func HandlePullRequest(c *gin.Context) {
 	var payload models.PullRequestPayload
 
 	if err := c.ShouldBindBodyWithJSON(&payload); err != nil {
