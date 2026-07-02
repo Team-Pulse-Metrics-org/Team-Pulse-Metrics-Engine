@@ -3,6 +3,7 @@ import Dashboard from '../pages/dashboard';
 import Metrics from '../pages/metrics';
 import Activity from '../pages/activity';
 import Layout from "../layouts/dashboardlayout";
+import Profile from '../pages/profile';
 
 function AppRoutes(){
     return(
@@ -10,6 +11,7 @@ function AppRoutes(){
             <Route element={<Layout/>}>
                 <Route index element={<Dashboard/>}/>
                 <Route path='dashboard' element={<Dashboard/>}/>
+                <Route path='profile' element={<Profile/>}/>
                 <Route path='metrics' element={<Metrics/>}/>
                 <Route path='activity' element={<Activity/>}/>
             </Route>
