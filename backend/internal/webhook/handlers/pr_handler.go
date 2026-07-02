@@ -21,6 +21,6 @@ func PullRequestHandler(c *gin.Context) {
 	fmt.Printf("\nPR title:			%s\n", payload.PullRequest.Title)
 	fmt.Printf("\nPR created by: 	%s\n", payload.PullRequest.User.Login)
 	fmt.Printf("\nPR created at: 	%s\n", payload.PullRequest.CreatedAt)
-	fmt.Printf("\nPR number 		%s\n", payload.Number)
+	fmt.Printf("\nPR number 		%d\n", payload.Number)
 	fmt.Printf("\nPR state 			%s\n", payload.PullRequest.State)
 }
