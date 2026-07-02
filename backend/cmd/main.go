@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -63,6 +64,7 @@ func getCommits(c *gin.Context) {
 }
 
 func main() {
+	database.ConnectDB()
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println(err)
