@@ -11,6 +11,8 @@ func HandleWebhook(c *gin.Context) {
 	eventType := c.GetHeader("X-GitHub-Event")
 
 	switch eventType {
+	case "pull_request":
+		HandlePullRequest(c)
 	case "push":
 		HandlePush(c)
 	case "ping":
