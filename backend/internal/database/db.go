@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/jackc/pgx/v5/stdlib" // 👈 The new driver registration!
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB
@@ -19,7 +19,8 @@ func ConnectDB() {
 
 	conStr := os.Getenv("DATABASE_URL")
 
-	DB, err = sql.Open("postgres", conStr)
+	// 👈 Change "postgres" to "pgx" right here
+	DB, err = sql.Open("pgx", conStr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,5 +29,5 @@ func ConnectDB() {
 		log.Fatal(err)
 	}
 
-	log.Println("Connected to PostgreSQL")
+	log.Println("Connected to PostgreSQL using pgx driver!")
 }
