@@ -5,7 +5,11 @@ import (
 	"log"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
+<<<<<<< HEAD
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/webhook/handlers"
+=======
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
+>>>>>>> main
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
