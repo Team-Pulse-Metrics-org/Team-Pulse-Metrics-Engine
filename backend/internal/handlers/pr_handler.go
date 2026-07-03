@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/webhook/models"
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/gin-gonic/gin"
 )
 
