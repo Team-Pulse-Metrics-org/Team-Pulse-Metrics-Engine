@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	// "github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	// database.ConnectDB()
+	database.ConnectDB()
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println(err)
