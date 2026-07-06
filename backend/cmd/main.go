@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
+
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	r := gin.Default()
 
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
