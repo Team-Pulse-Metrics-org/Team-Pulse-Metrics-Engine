@@ -21,6 +21,7 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
+	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
 
 	if err := r.Run(); err != nil {
 		log.Fatalf("server failed to start: %v", err)
