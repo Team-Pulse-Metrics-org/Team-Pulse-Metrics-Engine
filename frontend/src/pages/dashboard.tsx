@@ -15,14 +15,14 @@ function Dashboard(){
       </div>
       {/* chart section  */}
       <div className="grid grid-cols-3 gap-6 mt-8 px-6">
-        <Card className="col-span-2 h-[280px]"></Card>
-        <Card className="col-span-1 h-[280px]"></Card>
-        <Card className="col-span-2 h-[280px]"></Card>
-        <Card className="col-span-1 h-[280px]"></Card>
+        <Card className="col-span-2 h-70"></Card>
+        <Card className="col-span-1 h-70"></Card>
+        <Card className="col-span-2 h-70"></Card>
+        <Card className="col-span-1 h-70"></Card>
       </div>
       {/* Activity section */}
       <div className="grid grid-cols-4 mt-8 px-6 mb-8">
-        <Card className="col-span-4 h-[460px]"/>
+        <Card className="col-span-4 h-115"/>
       </div>
     </div>
     );
