@@ -21,6 +21,10 @@ type Users struct {
 	FirstName    string    `json:"first_name"`
 	LastName     string    `json:"last_name"`
 	Role         UserRole  `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+
+	GithubID       string    `json:"github_id"`
+	GithubUsername string    `json:"github_username"`
+	GithubToken    string    `json:"github_token"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }

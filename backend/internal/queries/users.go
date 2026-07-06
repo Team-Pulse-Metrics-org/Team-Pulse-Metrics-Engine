@@ -14,10 +14,13 @@ func GetUserByID(id uuid.UUID) (*models.Users, error) {
 		SELECT
 			id,
 			email,
-			password_hash,
+	
 			first_name,
 			last_name,
 			role,
+			github_id,
+    github_username,
+    github_token,
 			created_at,
 			updated_at
 		FROM users
@@ -27,10 +30,13 @@ func GetUserByID(id uuid.UUID) (*models.Users, error) {
 	err := database.DB.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Email,
-		&user.PasswordHash,
+
 		&user.FirstName,
 		&user.LastName,
 		&user.Role,
+		&user.GithubID,
+		&user.GithubUsername,
+		&user.GithubToken,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -48,10 +54,13 @@ func GetUserByEmail(email string) (*models.Users, error) {
 		SELECT
 			id,
 			email,
-			password_hash,
+			
 			first_name,
 			last_name,
 			role,
+			github_id,
+            github_username,
+            github_token,
 			created_at,
 			updated_at
 		FROM users
@@ -61,10 +70,13 @@ func GetUserByEmail(email string) (*models.Users, error) {
 	err := database.DB.QueryRow(query, email).Scan(
 		&user.ID,
 		&user.Email,
-		&user.PasswordHash,
+
 		&user.FirstName,
 		&user.LastName,
 		&user.Role,
+		&user.GithubID,
+		&user.GithubUsername,
+		&user.GithubToken,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -80,10 +92,13 @@ func GetAllUsers() ([]models.Users, error) {
 		SELECT
 			id,
 			email,
-			password_hash,
+			
 			first_name,
 			last_name,
 			role,
+			github_id,
+            github_username,
+            github_token,
 			created_at,
 			updated_at
 		FROM users
@@ -103,10 +118,13 @@ func GetAllUsers() ([]models.Users, error) {
 		err := rows.Scan(
 			&user.ID,
 			&user.Email,
-			&user.PasswordHash,
+
 			&user.FirstName,
 			&user.LastName,
 			&user.Role,
+			&user.GithubID,
+			&user.GithubUsername,
+			&user.GithubToken,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
