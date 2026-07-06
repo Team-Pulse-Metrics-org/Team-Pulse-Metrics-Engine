@@ -19,7 +19,7 @@ func GetUserByID(id uuid.UUID) (*models.Users, error) {
 			last_name,
 			role,
 			github_id,
-    github_username,
+    		github_username,
     
 			created_at,
 			updated_at
@@ -136,4 +136,56 @@ func GetAllUsers() ([]models.Users, error) {
 	}
 
 	return users, nil
+}
+
+func CreateUser(user *models.Users)(*models.Users, error){
+	query := `
+			INSERT INTO users (
+				email,
+				first_name,
+				last_name,
+				role,
+				github_id,
+				github_username
+			)
+			VALUES (
+				$1, $2, $3, $4, $5, $6
+			)
+			RETURNING
+				id,
+				email,
+				first_name,
+				last_name,
+				role,
+				github_id,
+				github_username,
+				created_at,
+				updated_at
+			`	
+	err := database.DB.QueryRow(
+		query,
+		user.Email,
+		user.FirstName,
+		user.LastName,
+		user.Role,
+		user.GithubID,
+		user.GithubUsername,
+	).Scan(
+		&user.ID,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Role,
+		&user.GithubID,
+		&user.GithubUsername,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+	
 }
