@@ -29,8 +29,8 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 		&activity.Type,
 		&activity.Payload,
 		&activity.Weight,
-		&activity.Logged_at,
-		&activity.Created_at,
+		&activity.LoggedAt,
+		&activity.CreatedAt,
 	)
 
 	if err != nil {
@@ -72,8 +72,8 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 			&activity.Type,
 			&activity.Payload,
 			&activity.Weight,
-			&activity.Logged_at,
-			&activity.Created_at,
+			&activity.LoggedAt,
+			&activity.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -116,8 +116,8 @@ func GetAllActivities() ([]models.Activities, error) {
 			&activity.Type,
 			&activity.Payload,
 			&activity.Weight,
-			&activity.Logged_at,
-			&activity.Created_at,
+			&activity.LoggedAt,
+			&activity.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -127,4 +127,25 @@ func GetAllActivities() ([]models.Activities, error) {
 	}
 
 	return activities, nil
+}
+
+func CreateActivity(activity models.Activities) error {
+	query := `INSERT INTO activities (
+			user_id,
+			type,
+			payload,
+			weight,
+			logged_at
+		)
+		VALUES ($1, $2, $3, $4, $5)`
+
+	_, err := database.DB.Exec(
+		query,
+		activity.UserID,
+		activity.Type,
+		activity.Payload,
+		activity.Weight,
+		activity.LoggedAt,
+	)
+	return err
 }
