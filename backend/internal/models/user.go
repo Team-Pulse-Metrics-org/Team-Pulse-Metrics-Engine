@@ -17,10 +17,13 @@ const (
 type Users struct {
 	ID           uuid.UUID `json:"id"`
 	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
 	FirstName    string    `json:"first_name"`
 	LastName     string    `json:"last_name"`
 	Role         UserRole  `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+
+	GithubID       string `json:"github_id"`
+	GithubUsername string `json:"github_username"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

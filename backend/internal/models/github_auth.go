@@ -18,6 +18,7 @@ type UserDetails struct {
 
 type GithubResponse struct {
 	ID    int    `json:"id"`
-	Login string `json:"role"`
-	Email string `email:"email"`
+	Login string `json:"login"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
