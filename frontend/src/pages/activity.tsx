@@ -1,5 +1,3 @@
-
-
 function Activity(){
     return(
         <>

@@ -204,7 +204,7 @@ func GetUserByGithubUsername(username string) (*models.Users,error){
 			created_at,
 			updated_at
 		FROM users
-		WHERE github_username = $1;`
+		WHERE LOWER(github_username) = LOWER($1);`
 	
 	
 	err := database.DB.QueryRow(query, username).Scan(
