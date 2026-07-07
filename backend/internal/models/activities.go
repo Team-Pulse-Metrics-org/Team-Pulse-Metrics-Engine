@@ -2,7 +2,7 @@ package models
 
 import (
 	"time"
-
+	"encoding/json"
 	"github.com/google/uuid"
 )
 
@@ -19,7 +19,7 @@ type Activities struct {
 	ID         uuid.UUID    `json:"id"`
 	UserID     uuid.UUID    `json:"user_id"`
 	Type       ActivityType `json:"type"`
-	Payload    any          `json:"payload"`
+	Payload    json.RawMessage          `json:"payload"`
 	Weight     int          `json:"weight"`
 	Logged_at  time.Time    `json:"logged_at"`
 	Created_at time.Time    `json:"created_at"`
