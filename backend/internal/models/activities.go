@@ -1,8 +1,9 @@
 package models
 
 import (
-	"time"
 	"encoding/json"
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -16,11 +17,11 @@ const (
 )
 
 type Activities struct {
-	ID         uuid.UUID    `json:"id"`
-	UserID     uuid.UUID    `json:"user_id"`
-	Type       ActivityType `json:"type"`
-	Payload    json.RawMessage          `json:"payload"`
-	Weight     int          `json:"weight"`
-	Logged_at  time.Time    `json:"logged_at"`
-	Created_at time.Time    `json:"created_at"`
+	ID        uuid.UUID       `json:"id"`
+	UserID    uuid.UUID       `json:"user_id"`
+	Type      ActivityType    `json:"type"`
+	Payload   json.RawMessage `json:"payload"`
+	Weight    int             `json:"weight"`
+	LoggedAt  time.Time       `json:"logged_at"`
+	CreatedAt time.Time       `json:"created_at"`
 }
