@@ -62,6 +62,7 @@ func HandlePush(c *gin.Context) {
 	if len(payload.Commits)>0{
 		loggedAt=payload.Commits[len(payload.Commits)-1].Timestamp
 	}
+	
 
 	activity := models.Activities{
 		UserID:   user.ID,
