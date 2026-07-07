@@ -1,5 +1,9 @@
 package models
 
+import (
+	"time"
+)
+
 type PushPayload struct {
 	Ref        string `json:"ref"`
 	Repository struct {
@@ -15,7 +19,7 @@ type PushPayload struct {
 type Commit struct {
 	ID        string `json:"id"`
 	Message   string `json:"message"`
-	Timestamp string `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 	Author    struct {
 		Name  string `json:"name"`
 		Email string `json:"email"`
