@@ -189,3 +189,40 @@ func CreateUser(user *models.Users)(*models.Users, error){
 	return user, nil
 	
 }
+
+func GetUserByGithubUsername(username string) (*models.Users,error){
+	var user models.Users
+
+	query:=`SELECT
+			id,
+			email,
+			first_name,
+			last_name,
+			role,
+			github_id,
+			github_username,
+			created_at,
+			updated_at
+		FROM users
+		WHERE github_username = $1;`
+	
+	
+	err := database.DB.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.Email,
+
+		&user.FirstName,
+		&user.LastName,
+		&user.Role,
+		&user.GithubID,
+		&user.GithubUsername,
+
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+		if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
