@@ -19,64 +19,80 @@ const [activities, setActivities] = useState<any[]>([]);
     .then((data) => {
       console.log("Backend data:",data)
       const formattedActivities = data.map((activity: any) => {
-        const payload =
-          typeof activity.payload === "string"
-            ? JSON.parse(activity.payload)
-            : activity.payload;
+  const payload =
+    typeof activity.payload === "string"
+      ? JSON.parse(activity.payload)
+      : activity.payload;
+console.log(activity.type,payload);
+  return {
+    id: activity.id,
+    timestamp: new Date(
+      activity.logged_at
+    ).toLocaleString(),
 
-        return {
-          id: activity.id,
-          timestamp: new Date(
-            activity.logged_at
-          ).toLocaleString(),
-          developer: payload.author,
-          type: activity.type,
-          repository: payload.repository,
-          message:
-            payload.commits?.[0]?.message ||
-            "No message",
-          weight: activity.weight,
-        };
-      });
-      console.log("Formatted:",formattedActivities)
-      setActivities(formattedActivities);
-    })
-    .catch((err) =>
-      console.error(
-        "Failed to fetch activities:",
-        err
-      )
-    );
+   developer:
+  payload.developer ||
+  payload.author ||
+  payload.action_by ||
+  payload.created_by ||
+  payload.sender?.login ||
+  payload.pull_request?.user?.login ||
+  "Unknown",
+
+    type: activity.type || "Unknown",
+
+    repository:
+      payload.repository?.name ||
+      payload.repository ||
+      "Unknown",
+
+    message:
+      payload.commits?.[0]?.message ||
+      payload.pull_request?.title ||
+      "No message",
+
+    weight: activity.weight ?? 0,
+  };
+});
+
+console.log("Formatted:", formattedActivities);
+setActivities(formattedActivities);
+})
+.catch((err) =>
+  console.error(
+    "Failed to fetch activities:",
+    err
+  )
+);
 }, []);
-
   const filteredActivities = activities.filter((activity) => {
-    const matchesSearch =
-      activity.developer
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      activity.message
-        .toLowerCase()
-        .includes(search.toLowerCase());
+  const developer = (activity.developer || "").toLowerCase();
+  const message = (activity.message || "").toLowerCase();
+  const searchText = search.toLowerCase();
 
-    const matchesDeveloper =
-      developerFilter === "All Developers" ||
-      activity.developer === developerFilter;
+  const matchesSearch =
+    developer.includes(searchText) ||
+    message.includes(searchText);
 
-    const matchesType =
-      typeFilter === "All Types" ||
-      activity.type === typeFilter;
+  const matchesDeveloper =
+    developerFilter === "All Developers" ||
+    activity.developer === developerFilter;
 
-    const matchesRepo =
-      repoFilter === "All Repositories" ||
-      activity.repository === repoFilter;
+  const matchesType =
+    typeFilter === "All Types" ||
+    activity.type === typeFilter;
 
-    return (
-      matchesSearch &&
-      matchesDeveloper &&
-      matchesType &&
-      matchesRepo
-    );
-  });
+  const matchesRepo =
+    repoFilter === "All Repositories" ||
+    activity.repository === repoFilter;
+
+  return (
+    matchesSearch &&
+    matchesDeveloper &&
+    matchesType &&
+    matchesRepo
+  );
+});
 
   const totalEvents = filteredActivities.length;
 
