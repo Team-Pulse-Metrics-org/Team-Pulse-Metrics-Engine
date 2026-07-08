@@ -149,3 +149,38 @@ func CreateActivity(activity models.Activities) error {
 	)
 	return err
 }
+func GetActivities() ([]models.Activities, error) {
+	rows, err := database.DB.Query(`
+        SELECT id, user_id, type, payload, weight, logged_at, created_at
+        FROM activities
+        ORDER BY logged_at DESC
+    `)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activities []models.Activities
+
+	for rows.Next() {
+		var activity models.Activities
+
+		err := rows.Scan(
+			&activity.ID,
+			&activity.UserID,
+			&activity.Type,
+			&activity.Payload,
+			&activity.Weight,
+			&activity.LoggedAt,
+			&activity.CreatedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		activities = append(activities, activity)
+	}
+
+	return activities, nil
+}
