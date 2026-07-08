@@ -35,9 +35,10 @@ func HandlePullRequest(c *gin.Context) {
 		"state":  payload.PullRequest.State,
 		"merged": payload.PullRequest.Merged,
 
-		"created_by": payload.PullRequest.User.Login,
-		"action_by":  payload.Sender.Login,
+		"developer": user.FirstName + " " + user.LastName,
 
+		"created_by":    payload.PullRequest.User.Login,
+		"action_by":     payload.Sender.Login,
 		"source_branch": payload.PullRequest.Head.Ref,
 		"target_branch": payload.PullRequest.Base.Ref,
 
