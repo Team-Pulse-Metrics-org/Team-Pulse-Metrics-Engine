@@ -8,12 +8,12 @@ import (
 	"github.com/gin-contrib/cors"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
-
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
 func main() {
+
 	database.ConnectDB()
 	err := godotenv.Load()
 	if err != nil {
@@ -21,10 +21,13 @@ func main() {
 	}
 	r := gin.Default()
 	r.Use(cors.Default())
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
 	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
-
+	r.GET("/api/v1/activities", handlers.GetActivities)
 	if err := r.Run(); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}
