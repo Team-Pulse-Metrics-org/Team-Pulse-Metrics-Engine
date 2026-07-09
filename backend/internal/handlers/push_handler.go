@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
@@ -21,10 +21,10 @@ func HandlePush(c *gin.Context) {
 		return
 	}
 
-	user,err:=queries.GetUserByGithubUsername(payload.Pusher.Name)
-	if err!=nil{
-		c.JSON(http.StatusNotFound,gin.H{
-			"error":"Github account not linked",
+	actor, err := queries.GetUserByGithubUsername(payload.Pusher.Name)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Github account not linked",
 		})
 		return
 	}
@@ -39,43 +39,41 @@ func HandlePush(c *gin.Context) {
 			"timestamp": commit.Timestamp,
 		})
 	}
-	
+
 	activityPayload := map[string]any{
 		"repository":   payload.Repository.Name,
 		"branch":       branch,
-		"author":       payload.Pusher.Name,
-		"author_email": payload.Pusher.Email,
+		"author":       actor.ID,
 		"commit_count": len(payload.Commits),
 		"commits":      commits,
 	}
 
-	payloadJSON,err:=json.Marshal(activityPayload)
-	if err!=nil{
-		c.JSON(http.StatusInternalServerError,gin.H{
-			"error":"failed to encode payload",
+	payloadJSON, err := json.Marshal(activityPayload)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to encode payload",
 		})
 		return
 	}
 
-	loggedAt:=time.Now()
+	loggedAt := time.Now()
 
-	if len(payload.Commits)>0{
-		loggedAt=payload.Commits[len(payload.Commits)-1].Timestamp
+	if len(payload.Commits) > 0 {
+		loggedAt = payload.Commits[len(payload.Commits)-1].Timestamp
 	}
-	
 
 	activity := models.Activities{
-		UserID:   user.ID,
+		UserID:   actor.ID,
 		Type:     models.ActivityGitCommit,
 		Payload:  payloadJSON,
 		Weight:   len(payload.Commits),
 		LoggedAt: loggedAt,
 	}
 
-	err=queries.CreateActivity(activity)
-	if err!=nil{
-		c.JSON(http.StatusInternalServerError,gin.H{
-			"error":"failed to save activity",
+	err = queries.CreateActivity(activity)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to save activity",
 		})
 		return
 	}
