@@ -13,72 +13,112 @@ const [activities, setActivities] = useState<any[]>([]);
     useState("All Types");
   const [repoFilter, setRepoFilter] =
     useState("All Repositories");
+const [currentPage, setCurrentPage] = useState(1);
+const eventsPerPage = 10;
+useEffect(() => {
+  setCurrentPage(1);
+}, [search, developerFilter, typeFilter, repoFilter]);
+
     useEffect(() => {
   fetch("http://localhost:8080/api/v1/activities")
     .then((res) => res.json())
     .then((data) => {
       console.log("Backend data:",data)
       const formattedActivities = data.map((activity: any) => {
-        const payload =
-          typeof activity.payload === "string"
-            ? JSON.parse(activity.payload)
-            : activity.payload;
+       
+  const payload =
+    typeof activity.payload === "string"
+      ? JSON.parse(activity.payload)
+      : activity.payload;
+console.log(activity.type,payload);
+ console.log("Payload:", payload);
+console.log("Developer field:", payload.author);
+console.log("Developer field:", payload.developer);
+console.log("Developer field:", payload.action_by);
+console.log("Developer field:", payload.created_by);
+  return {
+    id: activity.id,
+    timestamp: new Date(
+      activity.logged_at
+    ).toLocaleString(),
 
-        return {
-          id: activity.id,
-          timestamp: new Date(
-            activity.logged_at
-          ).toLocaleString(),
-          developer: payload.author,
-          type: activity.type,
-          repository: payload.repository,
-          message:
-            payload.commits?.[0]?.message ||
-            "No message",
-          weight: activity.weight,
-        };
-      });
-      console.log("Formatted:",formattedActivities)
-      setActivities(formattedActivities);
-    })
-    .catch((err) =>
-      console.error(
-        "Failed to fetch activities:",
-        err
-      )
-    );
+   developer:
+  payload.developer ||
+  payload.author ||
+  payload.action_by ||
+  payload.created_by ||
+  payload.sender?.login ||
+  payload.pull_request?.user?.login ||
+  "Unknown",
+
+    type: activity.type || "Unknown",
+
+    repository:
+      payload.repository?.name ||
+      payload.repository ||
+      "Unknown",
+
+    message:
+      payload.commits?.[0]?.message ||
+      payload.pull_request?.title ||
+      "No message",
+
+    weight: activity.weight ?? 0,
+  };
+});
+
+console.log("Formatted:", formattedActivities);
+setActivities(formattedActivities);
+})
+.catch((err) =>
+  console.error(
+    "Failed to fetch activities:",
+    err
+  )
+);
 }, []);
-
   const filteredActivities = activities.filter((activity) => {
-    const matchesSearch =
-      activity.developer
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      activity.message
-        .toLowerCase()
-        .includes(search.toLowerCase());
+  const developer = (activity.developer || "").toLowerCase();
+  const message = (activity.message || "").toLowerCase();
+  const searchText = search.toLowerCase();
 
-    const matchesDeveloper =
-      developerFilter === "All Developers" ||
-      activity.developer === developerFilter;
+  const matchesSearch =
+    developer.includes(searchText) ||
+    message.includes(searchText);
 
-    const matchesType =
-      typeFilter === "All Types" ||
-      activity.type === typeFilter;
+  const matchesDeveloper =
+    developerFilter === "All Developers" ||
+    activity.developer === developerFilter;
 
-    const matchesRepo =
-      repoFilter === "All Repositories" ||
-      activity.repository === repoFilter;
+  const matchesType =
+    typeFilter === "All Types" ||
+    activity.type === typeFilter;
 
-    return (
-      matchesSearch &&
-      matchesDeveloper &&
-      matchesType &&
-      matchesRepo
-    );
-  });
+  const matchesRepo =
+    repoFilter === "All Repositories" ||
+    activity.repository === repoFilter;
+
+
+  return (
+    matchesSearch &&
+    matchesDeveloper &&
+    matchesType &&
+    matchesRepo
+  );
+});
 
   const totalEvents = filteredActivities.length;
+  const indexOfLastEvent = currentPage * eventsPerPage;
+const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
+
+const currentActivities = filteredActivities.slice(
+  indexOfFirstEvent,
+  indexOfLastEvent
+);
+
+const totalPages = Math.ceil(
+  filteredActivities.length / eventsPerPage
+);
 
   return (
     <div className="p-8 text-white">
@@ -91,6 +131,16 @@ const [activities, setActivities] = useState<any[]>([]);
     Total Events: {totalEvents}
     </p>
       
+
+<p className="text-slate-400">
+  Showing {(currentPage - 1) * eventsPerPage + 1} -
+  {Math.min(
+    currentPage * eventsPerPage,
+    filteredActivities.length
+  )}{" "}
+  of {filteredActivities.length} events
+  (Page {currentPage} of {totalPages})
+</p>
 
       {/* Search */}
       <input
@@ -210,7 +260,7 @@ const [activities, setActivities] = useState<any[]>([]);
             </thead>
 
             <tbody>
-              {filteredActivities.map((activity) => (
+              {currentActivities.map((activity) => (
                 <React.Fragment key={activity.id}>
                   <tr className="border-t border-slate-700 hover:bg-slate-800">
                     <td className="p-4">
@@ -222,18 +272,18 @@ const [activities, setActivities] = useState<any[]>([]);
                     </td>
 
                     <td className="p-4">
-                      <span
-                        className={`px-2 py-1 rounded-md text-sm ${
-                          activity.type === "Commit"
-                            ? "bg-green-600"
-                            : activity.type === "PR"
-                            ? "bg-blue-600"
-                            : "bg-red-600"
-                        }`}
-                      >
-                        {activity.type}
-                      </span>
-                    </td>
+                  <span
+              className={`px-2 py-1 rounded-md text-sm text-white ${
+              activity.type === "git_commit"
+              ? "bg-blue-600"
+        : activity.type === "pull_request_closed"
+        ? "bg-green-600"
+        : "bg-red-600"
+    }`}
+  >
+    {activity.type}
+  </span>
+</td>
 
                     <td className="p-4">
                       {activity.repository}
@@ -294,7 +344,7 @@ const [activities, setActivities] = useState<any[]>([]);
                             <span className="font-bold">
                               Impact Weight:
                             </span>{" "}
-                            {activity.weight}/10
+                            {activity.weight}
                           </div>
                         </div>
                       </td>
@@ -306,6 +356,27 @@ const [activities, setActivities] = useState<any[]>([]);
           </table>
         </div>
       </div>
+      <div className="flex justify-center gap-4 mt-6">
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(currentPage - 1)}
+    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    Previous
+  </button>
+
+  <span>
+    Page {currentPage} of {totalPages}
+  </span>
+
+  <button
+    disabled={currentPage === totalPages}
+    onClick={() => setCurrentPage(currentPage + 1)}
+    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    Next
+  </button>
+</div>
     </div>
   );
 }

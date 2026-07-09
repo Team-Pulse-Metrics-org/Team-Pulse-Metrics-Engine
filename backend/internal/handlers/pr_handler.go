@@ -54,7 +54,6 @@ func HandlePullRequest(c *gin.Context) {
 
 		"url": payload.PullRequest.HTMLURL,
 	}
-
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
