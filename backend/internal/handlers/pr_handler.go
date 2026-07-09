@@ -18,12 +18,19 @@ func HandlePullRequest(c *gin.Context) {
 		return
 	}
 
-	user, err := queries.GetUserByGithubUsername(payload.Sender.Login)
+	actor, err := queries.GetUserByGithubUsername(payload.Sender.Login)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Github account not linked",
 		})
 		return
+	}
+
+	creator,err:=queries.GetUserByGithubUsername(payload.PullRequest.User.Login)
+	if err!=nil{
+		c.JSON(http.StatusNotFound,gin.H{
+			"error":"PR creator GitHub account not linked",
+		})
 	}
 
 	activityPayload := map[string]any{
@@ -35,8 +42,8 @@ func HandlePullRequest(c *gin.Context) {
 		"state":  payload.PullRequest.State,
 		"merged": payload.PullRequest.Merged,
 
-		"created_by": payload.PullRequest.User.Login,
-		"action_by":  payload.Sender.Login,
+		"created_by": creator.ID,
+		"action_by":  actor.ID,
 
 		"source_branch": payload.PullRequest.Head.Ref,
 		"target_branch": payload.PullRequest.Base.Ref,
@@ -70,7 +77,7 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:   user.ID,
+		UserID:   actor.ID,
 		Type:     models.ActivityPullRequestClosed,
 		Payload:  payloadJSON,
 		Weight:   1,
