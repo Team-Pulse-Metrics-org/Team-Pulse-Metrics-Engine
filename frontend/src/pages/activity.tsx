@@ -251,19 +251,13 @@ setActivities(formattedActivities);
               ? "bg-blue-600"
         : activity.type === "pull_request_closed"
         ? "bg-green-600"
-        : activity.type === "pull_request_opened"
-        ? "bg-yellow-600"
-        : activity.type === "pull_request_review_submitted"
-        ? "bg-purple-600"
-        : activity.type === "pull_request_review_requested"
-        ? "bg-pink-600"
         : "bg-red-600"
     }`}
   >
     {activity.type}
   </span>
 </td>
-// webhookhook
+
                     <td className="p-4">
                       {activity.repository}
                     </td>
