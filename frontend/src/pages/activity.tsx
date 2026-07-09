@@ -19,11 +19,17 @@ const [activities, setActivities] = useState<any[]>([]);
     .then((data) => {
       console.log("Backend data:",data)
       const formattedActivities = data.map((activity: any) => {
+       
   const payload =
     typeof activity.payload === "string"
       ? JSON.parse(activity.payload)
       : activity.payload;
 console.log(activity.type,payload);
+ console.log("Payload:", payload);
+console.log("Developer field:", payload.author);
+console.log("Developer field:", payload.developer);
+console.log("Developer field:", payload.action_by);
+console.log("Developer field:", payload.created_by);
   return {
     id: activity.id,
     timestamp: new Date(
@@ -85,6 +91,7 @@ setActivities(formattedActivities);
   const matchesRepo =
     repoFilter === "All Repositories" ||
     activity.repository === repoFilter;
+
 
   return (
     matchesSearch &&
@@ -238,19 +245,25 @@ setActivities(formattedActivities);
                     </td>
 
                     <td className="p-4">
-                      <span
-                        className={`px-2 py-1 rounded-md text-sm ${
-                          activity.type === "Commit"
-                            ? "bg-green-600"
-                            : activity.type === "PR"
-                            ? "bg-blue-600"
-                            : "bg-red-600"
-                        }`}
-                      >
-                        {activity.type}
-                      </span>
-                    </td>
-
+                  <span
+              className={`px-2 py-1 rounded-md text-sm text-white ${
+              activity.type === "git_commit"
+              ? "bg-blue-600"
+        : activity.type === "pull_request_closed"
+        ? "bg-green-600"
+        : activity.type === "pull_request_opened"
+        ? "bg-yellow-600"
+        : activity.type === "pull_request_review_submitted"
+        ? "bg-purple-600"
+        : activity.type === "pull_request_review_requested"
+        ? "bg-pink-600"
+        : "bg-red-600"
+    }`}
+  >
+    {activity.type}
+  </span>
+</td>
+// webhook
                     <td className="p-4">
                       {activity.repository}
                     </td>
@@ -310,7 +323,7 @@ setActivities(formattedActivities);
                             <span className="font-bold">
                               Impact Weight:
                             </span>{" "}
-                            {activity.weight}/10
+                            {activity.weight}
                           </div>
                         </div>
                       </td>
