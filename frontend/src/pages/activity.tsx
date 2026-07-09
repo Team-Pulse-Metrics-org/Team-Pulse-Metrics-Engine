@@ -13,6 +13,12 @@ const [activities, setActivities] = useState<any[]>([]);
     useState("All Types");
   const [repoFilter, setRepoFilter] =
     useState("All Repositories");
+const [currentPage, setCurrentPage] = useState(1);
+const eventsPerPage = 10;
+useEffect(() => {
+  setCurrentPage(1);
+}, [search, developerFilter, typeFilter, repoFilter]);
+
     useEffect(() => {
   fetch("http://localhost:8080/api/v1/activities")
     .then((res) => res.json())
@@ -102,6 +108,17 @@ setActivities(formattedActivities);
 });
 
   const totalEvents = filteredActivities.length;
+  const indexOfLastEvent = currentPage * eventsPerPage;
+const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
+
+const currentActivities = filteredActivities.slice(
+  indexOfFirstEvent,
+  indexOfLastEvent
+);
+
+const totalPages = Math.ceil(
+  filteredActivities.length / eventsPerPage
+);
 
   return (
     <div className="p-8 text-white">
@@ -114,6 +131,16 @@ setActivities(formattedActivities);
     Total Events: {totalEvents}
     </p>
       
+
+<p className="text-slate-400">
+  Showing {(currentPage - 1) * eventsPerPage + 1} -
+  {Math.min(
+    currentPage * eventsPerPage,
+    filteredActivities.length
+  )}{" "}
+  of {filteredActivities.length} events
+  (Page {currentPage} of {totalPages})
+</p>
 
       {/* Search */}
       <input
@@ -233,7 +260,7 @@ setActivities(formattedActivities);
             </thead>
 
             <tbody>
-              {filteredActivities.map((activity) => (
+              {currentActivities.map((activity) => (
                 <React.Fragment key={activity.id}>
                   <tr className="border-t border-slate-700 hover:bg-slate-800">
                     <td className="p-4">
@@ -329,6 +356,27 @@ setActivities(formattedActivities);
           </table>
         </div>
       </div>
+      <div className="flex justify-center gap-4 mt-6">
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(currentPage - 1)}
+    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    Previous
+  </button>
+
+  <span>
+    Page {currentPage} of {totalPages}
+  </span>
+
+  <button
+    disabled={currentPage === totalPages}
+    onClick={() => setCurrentPage(currentPage + 1)}
+    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    Next
+  </button>
+</div>
     </div>
   );
 }
