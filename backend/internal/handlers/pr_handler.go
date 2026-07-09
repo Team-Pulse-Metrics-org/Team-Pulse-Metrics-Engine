@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -35,10 +36,9 @@ func HandlePullRequest(c *gin.Context) {
 		"state":  payload.PullRequest.State,
 		"merged": payload.PullRequest.Merged,
 
-		"developer": user.FirstName + " " + user.LastName,
-
-		"created_by":    payload.PullRequest.User.Login,
-		"action_by":     payload.Sender.Login,
+		"developer":     user.FirstName + " " + user.LastName,
+		"created_by":    user.FirstName + " " + user.LastName,
+		"action_by":     user.FirstName + " " + user.LastName,
 		"source_branch": payload.PullRequest.Head.Ref,
 		"target_branch": payload.PullRequest.Base.Ref,
 
@@ -48,7 +48,8 @@ func HandlePullRequest(c *gin.Context) {
 
 		"url": payload.PullRequest.HTMLURL,
 	}
-
+	fmt.Println("Developer being stored:", user.FirstName+" "+user.LastName)
+	fmt.Println("Payload author:", activityPayload["author"])
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

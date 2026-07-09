@@ -8,8 +8,10 @@ import (
 )
 
 func HandleWebhook(c *gin.Context) {
-	eventType := c.GetHeader("X-GitHub-Event")
+	fmt.Println("Webhook received from GitHub")
 
+	eventType := c.GetHeader("X-GitHub-Event")
+	fmt.Println("Event type:", eventType)
 	switch eventType {
 	case "pull_request":
 		HandlePullRequest(c)
