@@ -21,7 +21,10 @@ func main() {
 	}
 	r := gin.Default()
 	r.Use(cors.Default())
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0e63910835e4127b16f709278dc57eb14441b816
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
 	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
 	r.GET("/api/v1/activities", handlers.GetActivities)
