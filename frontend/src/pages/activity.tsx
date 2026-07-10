@@ -13,7 +13,9 @@ const [activities, setActivities] = useState<any[]>([]);
     useState("All Types");
   const [repoFilter, setRepoFilter] =
     useState("All Repositories");
+
 const [currentPage, setCurrentPage] = useState(1);
+const [sortOrder, setSortOrder] = useState("latest");
 const eventsPerPage = 10;
 useEffect(() => {
   setCurrentPage(1);
@@ -38,8 +40,9 @@ console.log("Developer field:", payload.action_by);
 console.log("Developer field:", payload.created_by);
   return {
     id: activity.id,
-    timestamp: new Date(
-      activity.logged_at
+    timestamp: activity.logged_at,
+    displayTime: new Date(
+    activity.logged_at
     ).toLocaleString(),
 
    developer:
@@ -67,8 +70,15 @@ console.log("Developer field:", payload.created_by);
   };
 });
 
-console.log("Formatted:", formattedActivities);
-setActivities(formattedActivities);
+const sortedActivities = formattedActivities.sort(
+  (a :any, b:any) =>
+    new Date(b.timestamp).getTime() -
+    new Date(a.timestamp).getTime()
+);
+
+setActivities(sortedActivities);
+console.log("Formatted:", sortedActivities);
+setActivities(sortedActivities);
 })
 .catch((err) =>
   console.error(
@@ -106,12 +116,26 @@ setActivities(formattedActivities);
     matchesRepo
   );
 });
+const sortedFilteredActivities = [...filteredActivities].sort(
+  (a: any, b: any) => {
+    if (sortOrder === "latest") {
+      return (
+        new Date(b.timestamp).getTime() -
+      new Date(a.timestamp).getTime()
+      );
+    }
 
+    return (
+      new Date(a.timestamp).getTime() -
+      new Date(b.timestamp).getTime()
+    );
+  }
+);
   const totalEvents = filteredActivities.length;
   const indexOfLastEvent = currentPage * eventsPerPage;
 const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
 
-const currentActivities = filteredActivities.slice(
+const currentActivities = sortedFilteredActivities.slice(
   indexOfFirstEvent,
   indexOfLastEvent
 );
@@ -152,7 +176,7 @@ const totalPages = Math.ceil(
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-6 mt-6">
+      <div className="grid grid-cols-4 gap-3 mt-4">
         {/* Developer */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
           <span className="text-slate-400">
@@ -213,7 +237,7 @@ const totalPages = Math.ceil(
 
         {/* Repository */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
-          <span className="text-slate-400">
+          <span className="text-slate-300">
             Repository:
           </span>
 
@@ -237,8 +261,28 @@ const totalPages = Math.ceil(
   ))}
 </select>
         </div>
+        {/* Sort */}
+<div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
+  <span className="text-slate-400">
+    Sort:
+  </span>
+
+  <select
+    value={sortOrder}
+    onChange={(e) => setSortOrder(e.target.value)}
+    className="bg-transparent outline-none"
+  >
+    <option value="latest" className="text-black">
+      Latest First
+    </option>
+
+    <option value="oldest" className="text-black">
+      Oldest First
+    </option>
+  </select>
+</div>
       </div>
-<div className="flex justify-between items-center mt-6 mb-3">
+<div className="flex justify-between items-center mt-5 mb-2">
   <h2 className="text-xl font-semibold">
     Activity Events
   </h2>
@@ -271,7 +315,7 @@ const totalPages = Math.ceil(
                 <React.Fragment key={activity.id}>
                   <tr className="border-t border-slate-700 hover:bg-slate-800">
                     <td className="p-4">
-                      {activity.timestamp}
+                      {activity.displayTime}
                     </td>
 
                     <td className="p-4">
