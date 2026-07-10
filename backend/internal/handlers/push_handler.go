@@ -65,10 +65,10 @@ func HandlePush(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:   user.ID,
-		Type:     models.ActivityGitCommit,
-		Payload:  payloadJSON,
-		Weight:   len(payload.Commits),
+		UserID:  user.ID,
+		Type:    models.ActivityGitCommit,
+		Payload: payloadJSON,
+
 		LoggedAt: loggedAt,
 	}
 
