@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -18,19 +19,12 @@ func HandlePullRequest(c *gin.Context) {
 		return
 	}
 
-	actor, err := queries.GetUserByGithubUsername(payload.Sender.Login)
+	user, err := queries.GetUserByGithubUsername(payload.Sender.Login)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Github account not linked",
 		})
 		return
-	}
-
-	creator,err:=queries.GetUserByGithubUsername(payload.PullRequest.User.Login)
-	if err!=nil{
-		c.JSON(http.StatusNotFound,gin.H{
-			"error":"PR creator GitHub account not linked",
-		})
 	}
 
 	activityPayload := map[string]any{
@@ -42,9 +36,9 @@ func HandlePullRequest(c *gin.Context) {
 		"state":  payload.PullRequest.State,
 		"merged": payload.PullRequest.Merged,
 
-		"created_by": creator.ID,
-		"action_by":  actor.ID,
-
+		"developer":     user.FirstName + " " + user.LastName,
+		"created_by":    user.FirstName + " " + user.LastName,
+		"action_by":     user.FirstName + " " + user.LastName,
 		"source_branch": payload.PullRequest.Head.Ref,
 		"target_branch": payload.PullRequest.Base.Ref,
 
@@ -54,6 +48,8 @@ func HandlePullRequest(c *gin.Context) {
 
 		"url": payload.PullRequest.HTMLURL,
 	}
+	fmt.Println("Developer being stored:", user.FirstName+" "+user.LastName)
+	fmt.Println("Payload author:", activityPayload["author"])
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -76,10 +72,10 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:   actor.ID,
-		Type:     models.ActivityPullRequestClosed,
-		Payload:  payloadJSON,
-		Weight:   1,
+		UserID:  user.ID,
+		Type:    models.ActivityPullRequestClosed,
+		Payload: payloadJSON,
+
 		LoggedAt: loggedAt,
 	}
 

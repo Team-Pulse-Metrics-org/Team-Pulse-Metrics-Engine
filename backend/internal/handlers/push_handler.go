@@ -30,9 +30,14 @@ func HandlePush(c *gin.Context) {
 	}
 
 	branch := strings.TrimPrefix(payload.Ref, "refs/heads/")
-	commits := make([]map[string]any, 0, len(payload.Commits))
+	commits := make([]map[string]any, 0)
+
 
 	for _, commit := range payload.Commits {
+		if commit.Author.Name != payload.Pusher.Name {
+			continue
+		}
+
 		commits = append(commits, map[string]any{
 			"sha":       commit.ID,
 			"message":   commit.Message,
@@ -66,7 +71,6 @@ func HandlePush(c *gin.Context) {
 		UserID:   actor.ID,
 		Type:     models.ActivityGitCommit,
 		Payload:  payloadJSON,
-		Weight:   len(payload.Commits),
 		LoggedAt: loggedAt,
 	}
 

@@ -5,7 +5,11 @@ import { FaGithub } from "react-icons/fa";
 
 function handleGitHubLogin() {
   const CLIENT_ID: string = import.meta.env.VITE_GITHUB_CLIENT_ID;
-  const REDIRECT_URI: string = "http://localhost:5174/auth/callback";
+<<<<<<< Updated upstream
+=======
+  console.log(CLIENT_ID)
+>>>>>>> Stashed changes
+  const REDIRECT_URI: string = "http://localhost:5173/auth/callback";
   const SCOPE: string = "user,public_repo";
 
   const githubAuthUrl: string = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPE}`;

@@ -13,7 +13,7 @@ const (
 	ActivityGitCommit         ActivityType = "git_commit"
 	ActivityPullRequestClosed ActivityType = "pull_request_closed"
 	ActivityTaskCompleted     ActivityType = "task_completed"
-	ActivityBlockerRaised     ActivityType = "blocker_raised"
+	ActivityIssueOpened     ActivityType = "open_issue"
 )
 
 type Activities struct {
@@ -21,7 +21,6 @@ type Activities struct {
 	UserID    uuid.UUID       `json:"user_id"`
 	Type      ActivityType    `json:"type"`
 	Payload   json.RawMessage `json:"payload"`
-	Weight    int             `json:"weight"`
 	LoggedAt  time.Time       `json:"logged_at"`
 	CreatedAt time.Time       `json:"created_at"`
 }
