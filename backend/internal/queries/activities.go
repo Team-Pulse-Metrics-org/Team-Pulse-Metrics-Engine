@@ -134,10 +134,9 @@ func CreateActivity(activity models.Activities) error {
 			user_id,
 			type,
 			payload,
-			
 			logged_at
 		)
-		VALUES ($1, $2, $3, $4, $5)`
+		VALUES ($1, $2, $3, $4)`
 
 	_, err := database.DB.Exec(
 		query,
