@@ -63,7 +63,7 @@ console.log("Developer field:", payload.created_by);
       payload.pull_request?.title ||
       "No message",
 
-    weight: activity.weight ?? 0,
+  
   };
 });
 
@@ -166,7 +166,9 @@ const totalPages = Math.ceil(
             }
             className="bg-transparent outline-none"
           >
-            <option>All Developers</option>
+             <option value="All Developers" className="text-black">
+    All Developers
+  </option>
 
             {[...new Set(
               activities.map((a) => a.developer)
@@ -174,6 +176,7 @@ const totalPages = Math.ceil(
               <option
                 key={developer}
                 value={developer}
+                className="text-black"
               >
                 {developer}
               </option>
@@ -186,24 +189,26 @@ const totalPages = Math.ceil(
           <span className="text-slate-400">
             Activity Type:
           </span>
+<select
+  value={typeFilter}
+  onChange={(e) => setTypeFilter(e.target.value)}
+  className="bg-transparent outline-none"
+>
+  <option value="All Types" className="text-black">
+    All Types
+  </option>
 
-          <select
-            value={typeFilter}
-            onChange={(e) =>
-              setTypeFilter(e.target.value)
-            }
-            className="bg-transparent outline-none"
-          >
-            <option>All Types</option>
-
-            {[...new Set(
-              activities.map((a) => a.type)
-            )].map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+  {[...new Set(activities.map((a) => a.type))].map((type) => (
+    <option
+      key={type}
+      value={type}
+      className="text-black"
+    >
+      {type}
+    </option>
+  ))}
+</select>
+         
         </div>
 
         {/* Repository */}
@@ -212,23 +217,25 @@ const totalPages = Math.ceil(
             Repository:
           </span>
 
-          <select
-            value={repoFilter}
-            onChange={(e) =>
-              setRepoFilter(e.target.value)
-            }
-            className="bg-transparent outline-none"
-          >
-            <option>All Repositories</option>
+         <select
+  value={repoFilter}
+  onChange={(e) => setRepoFilter(e.target.value)}
+  className="bg-transparent outline-none"
+>
+  <option value="All Repositories" className="text-black">
+    All Repositories
+  </option>
 
-            {[...new Set(
-              activities.map((a) => a.repository)
-            )].map((repo) => (
-              <option key={repo} value={repo}>
-                {repo}
-              </option>
-            ))}
-          </select>
+  {[...new Set(activities.map((a) => a.repository))].map((repo) => (
+    <option
+      key={repo}
+      value={repo}
+      className="text-black"
+    >
+      {repo}
+    </option>
+  ))}
+</select>
         </div>
       </div>
 <div className="flex justify-between items-center mt-6 mb-3">
@@ -254,7 +261,7 @@ const totalPages = Math.ceil(
                 <th className="p-4">Type</th>
                 <th className="p-4">Repository</th>
                 <th className="p-4">Message</th>
-                <th className="p-4">Weight</th>
+                
                 <th className="p-4"></th>
               </tr>
             </thead>
@@ -299,10 +306,6 @@ const totalPages = Math.ceil(
                     </td>
 
                     <td className="p-4">
-                      {activity.weight}
-                    </td>
-
-                    <td className="p-4">
                       <button
                         onClick={() =>
                           setExpandedId(
@@ -340,12 +343,8 @@ const totalPages = Math.ceil(
                             {activity.repository}
                           </div>
 
-                          <div>
-                            <span className="font-bold">
-                              Impact Weight:
-                            </span>{" "}
-                            {activity.weight}
-                          </div>
+                          
+                        
                         </div>
                       </td>
                     </tr>

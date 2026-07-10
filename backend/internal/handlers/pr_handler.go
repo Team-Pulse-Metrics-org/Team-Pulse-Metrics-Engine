@@ -72,10 +72,10 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:   user.ID,
-		Type:     models.ActivityPullRequestClosed,
-		Payload:  payloadJSON,
-		Weight:   1,
+		UserID:  user.ID,
+		Type:    models.ActivityPullRequestClosed,
+		Payload: payloadJSON,
+
 		LoggedAt: loggedAt,
 	}
 
