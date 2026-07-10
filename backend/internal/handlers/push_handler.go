@@ -21,7 +21,7 @@ func HandlePush(c *gin.Context) {
 		return
 	}
 
-	user, err := queries.GetUserByGithubUsername(payload.Pusher.Name)
+	actor, err := queries.GetUserByGithubUsername(payload.Pusher.Name)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Github account not linked",
@@ -30,9 +30,14 @@ func HandlePush(c *gin.Context) {
 	}
 
 	branch := strings.TrimPrefix(payload.Ref, "refs/heads/")
-	commits := make([]map[string]any, 0, len(payload.Commits))
+	commits := make([]map[string]any, 0)
+
 
 	for _, commit := range payload.Commits {
+		if commit.Author.Name != payload.Pusher.Name {
+			continue
+		}
+
 		commits = append(commits, map[string]any{
 			"sha":       commit.ID,
 			"message":   commit.Message,
@@ -43,13 +48,11 @@ func HandlePush(c *gin.Context) {
 	activityPayload := map[string]any{
 		"repository":   payload.Repository.Name,
 		"branch":       branch,
-		"author":       user.FirstName + " " + user.LastName,
-		"author_email": payload.Pusher.Email,
+		"author":       actor.ID,
 		"commit_count": len(payload.Commits),
 		"commits":      commits,
 	}
-	fmt.Println("Github username:", payload.Pusher.Name)
-	fmt.Println("Database name:", user.FirstName+" "+user.LastName)
+
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -65,10 +68,9 @@ func HandlePush(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:  user.ID,
-		Type:    models.ActivityGitCommit,
-		Payload: payloadJSON,
-
+		UserID:   actor.ID,
+		Type:     models.ActivityGitCommit,
+		Payload:  payloadJSON,
 		LoggedAt: loggedAt,
 	}
 
