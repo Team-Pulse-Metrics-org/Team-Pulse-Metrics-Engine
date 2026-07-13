@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
@@ -21,8 +20,6 @@ func main() {
 	}
 
 	l := middleware.LogGet()
-	log.Println("app environment", os.Getenv("APP_ENV"))
-	log.Println(os.Getenv("LOG_LEVEL"))
 
 	port := os.Getenv("PORT")
 	if port == "" {
