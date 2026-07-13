@@ -46,7 +46,8 @@ console.log("Developer field:", payload.created_by);
     ).toLocaleString(),
 
    developer:
-  payload.developer ||
+    activity.developer_name ||
+  payload.developer||
   payload.author ||
   payload.action_by ||
   payload.created_by ||
@@ -61,11 +62,11 @@ console.log("Developer field:", payload.created_by);
       payload.repository ||
       "Unknown",
 
-    message:
-      payload.commits?.[0]?.message ||
-      payload.pull_request?.title ||
-      "No message",
-
+   message:
+  payload.message ||
+  payload.commits?.[0]?.message ||
+  payload.pull_request?.title ||
+  "No message",
   
   };
 });
@@ -399,25 +400,38 @@ const totalPages = Math.ceil(
           </table>
         </div>
       </div>
-      <div className="flex justify-center gap-4 mt-6">
+      <div className="flex justify-center items-center gap-2 mt-4">
+  {/* Previous Arrow */}
   <button
     disabled={currentPage === 1}
     onClick={() => setCurrentPage(currentPage - 1)}
-    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+    className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
   >
-    Previous
+    &lt;
   </button>
 
-  <span>
-    Page {currentPage} of {totalPages}
-  </span>
+  {/* Page Numbers */}
+  {Array.from({ length: totalPages }, (_, index) => (
+    <button
+      key={index}
+      onClick={() => setCurrentPage(index + 1)}
+      className={`px-3 py-2 rounded ${
+        currentPage === index + 1
+          ? "bg-white text-black"
+          : "bg-slate-700 hover:bg-slate-600"
+      }`}
+    >
+      {index + 1}
+    </button>
+  ))}
 
+  {/* Next Arrow */}
   <button
     disabled={currentPage === totalPages}
     onClick={() => setCurrentPage(currentPage + 1)}
-    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+    className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
   >
-    Next
+    &gt;
   </button>
 </div>
     </div>

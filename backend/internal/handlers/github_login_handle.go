@@ -107,6 +107,7 @@ func HandleGithubLogin(c *gin.Context) {
 				"status":  "error",
 				"message": "database error",
 			})
+
 			return
 		}
 	}
@@ -117,6 +118,7 @@ func HandleGithubLogin(c *gin.Context) {
 
 	appToken, err := auth.GenerateJWTToken(userID, userRole)
 	if err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to generate session token"})
 		return
 	}

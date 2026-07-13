@@ -150,10 +150,19 @@ func CreateActivity(activity models.Activities) error {
 }
 func GetActivities() ([]models.Activities, error) {
 	rows, err := database.DB.Query(`
-        SELECT id, user_id, type, payload, logged_at, created_at
-        FROM activities
-        ORDER BY logged_at DESC
-    `)
+    SELECT
+        a.id,
+        a.user_id,
+        a.type,
+        a.payload,
+        a.logged_at,
+        a.created_at,
+        u.first_name || ' ' || u.last_name AS developer_name
+    FROM activities a
+    LEFT JOIN users u
+    ON a.user_id = u.id
+    ORDER BY a.logged_at DESC
+`)
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +181,7 @@ func GetActivities() ([]models.Activities, error) {
 
 			&activity.LoggedAt,
 			&activity.CreatedAt,
+			&activity.DeveloperName,
 		)
 
 		if err != nil {
