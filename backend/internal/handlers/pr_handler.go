@@ -19,6 +19,14 @@ func HandlePullRequest(c *gin.Context) {
 		return
 	}
 
+	creator, err := queries.GetUserByGithubUsername(payload.PullRequest.User.Login)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "PR creator GitHub account not linked",
+		})
+		return
+	}
+
 	user, err := queries.GetUserByGithubUsername(payload.Sender.Login)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -32,15 +40,13 @@ func HandlePullRequest(c *gin.Context) {
 		"pr_number":  payload.Number,
 		"title":      payload.PullRequest.Title,
 
-		"action": payload.Action,
-		"state":  payload.PullRequest.State,
-		"merged": payload.PullRequest.Merged,
-
-		"developer":     user.FirstName + " " + user.LastName,
-		"created_by":    user.FirstName + " " + user.LastName,
-		"action_by":     user.FirstName + " " + user.LastName,
-		"source_branch": payload.PullRequest.Head.Ref,
-		"target_branch": payload.PullRequest.Base.Ref,
+		"action":             payload.Action,
+		"state":              payload.PullRequest.State,
+		"merged":             payload.PullRequest.Merged,
+		"created_by_user_id": creator.ID,
+		"action_by_user_id":  user.ID,
+		"source_branch":      payload.PullRequest.Head.Ref,
+		"target_branch":      payload.PullRequest.Base.Ref,
 
 		"created_at": payload.PullRequest.CreatedAt,
 		"closed_at":  payload.PullRequest.ClosedAt,
@@ -72,10 +78,10 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:   user.ID,
-		Type:     models.ActivityPullRequestClosed,
-		Payload:  payloadJSON,
-		Weight:   1,
+		UserID:  user.ID,
+		Type:    models.ActivityPullRequestClosed,
+		Payload: payloadJSON,
+
 		LoggedAt: loggedAt,
 	}
 

@@ -13,6 +13,14 @@ const [activities, setActivities] = useState<any[]>([]);
     useState("All Types");
   const [repoFilter, setRepoFilter] =
     useState("All Repositories");
+
+const [currentPage, setCurrentPage] = useState(1);
+const [sortOrder, setSortOrder] = useState("latest");
+const eventsPerPage = 10;
+useEffect(() => {
+  setCurrentPage(1);
+}, [search, developerFilter, typeFilter, repoFilter]);
+
     useEffect(() => {
   fetch("http://localhost:8080/api/v1/activities")
     .then((res) => res.json())
@@ -32,8 +40,9 @@ console.log("Developer field:", payload.action_by);
 console.log("Developer field:", payload.created_by);
   return {
     id: activity.id,
-    timestamp: new Date(
-      activity.logged_at
+    timestamp: activity.logged_at,
+    displayTime: new Date(
+    activity.logged_at
     ).toLocaleString(),
 
    developer:
@@ -57,12 +66,19 @@ console.log("Developer field:", payload.created_by);
       payload.pull_request?.title ||
       "No message",
 
-    weight: activity.weight ?? 0,
+  
   };
 });
 
-console.log("Formatted:", formattedActivities);
-setActivities(formattedActivities);
+const sortedActivities = formattedActivities.sort(
+  (a :any, b:any) =>
+    new Date(b.timestamp).getTime() -
+    new Date(a.timestamp).getTime()
+);
+
+setActivities(sortedActivities);
+console.log("Formatted:", sortedActivities);
+setActivities(sortedActivities);
 })
 .catch((err) =>
   console.error(
@@ -100,8 +116,33 @@ setActivities(formattedActivities);
     matchesRepo
   );
 });
+const sortedFilteredActivities = [...filteredActivities].sort(
+  (a: any, b: any) => {
+    if (sortOrder === "latest") {
+      return (
+        new Date(b.timestamp).getTime() -
+      new Date(a.timestamp).getTime()
+      );
+    }
 
+    return (
+      new Date(a.timestamp).getTime() -
+      new Date(b.timestamp).getTime()
+    );
+  }
+);
   const totalEvents = filteredActivities.length;
+  const indexOfLastEvent = currentPage * eventsPerPage;
+const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
+
+const currentActivities = sortedFilteredActivities.slice(
+  indexOfFirstEvent,
+  indexOfLastEvent
+);
+
+const totalPages = Math.ceil(
+  filteredActivities.length / eventsPerPage
+);
 
   return (
     <div className="p-8 text-white">
@@ -115,6 +156,16 @@ setActivities(formattedActivities);
     </p>
       
 
+<p className="text-slate-400">
+  Showing {(currentPage - 1) * eventsPerPage + 1} -
+  {Math.min(
+    currentPage * eventsPerPage,
+    filteredActivities.length
+  )}{" "}
+  of {filteredActivities.length} events
+  (Page {currentPage} of {totalPages})
+</p>
+
       {/* Search */}
       <input
         type="text"
@@ -125,7 +176,7 @@ setActivities(formattedActivities);
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-6 mt-6">
+      <div className="grid grid-cols-4 gap-3 mt-4">
         {/* Developer */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
           <span className="text-slate-400">
@@ -139,7 +190,9 @@ setActivities(formattedActivities);
             }
             className="bg-transparent outline-none"
           >
-            <option>All Developers</option>
+             <option value="All Developers" className="text-black">
+    All Developers
+  </option>
 
             {[...new Set(
               activities.map((a) => a.developer)
@@ -147,6 +200,7 @@ setActivities(formattedActivities);
               <option
                 key={developer}
                 value={developer}
+                className="text-black"
               >
                 {developer}
               </option>
@@ -159,52 +213,76 @@ setActivities(formattedActivities);
           <span className="text-slate-400">
             Activity Type:
           </span>
+<select
+  value={typeFilter}
+  onChange={(e) => setTypeFilter(e.target.value)}
+  className="bg-transparent outline-none"
+>
+  <option value="All Types" className="text-black">
+    All Types
+  </option>
 
-          <select
-            value={typeFilter}
-            onChange={(e) =>
-              setTypeFilter(e.target.value)
-            }
-            className="bg-transparent outline-none"
-          >
-            <option>All Types</option>
-
-            {[...new Set(
-              activities.map((a) => a.type)
-            )].map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+  {[...new Set(activities.map((a) => a.type))].map((type) => (
+    <option
+      key={type}
+      value={type}
+      className="text-black"
+    >
+      {type}
+    </option>
+  ))}
+</select>
+         
         </div>
 
         {/* Repository */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
-          <span className="text-slate-400">
+          <span className="text-slate-300">
             Repository:
           </span>
 
-          <select
-            value={repoFilter}
-            onChange={(e) =>
-              setRepoFilter(e.target.value)
-            }
-            className="bg-transparent outline-none"
-          >
-            <option>All Repositories</option>
+         <select
+  value={repoFilter}
+  onChange={(e) => setRepoFilter(e.target.value)}
+  className="bg-transparent outline-none"
+>
+  <option value="All Repositories" className="text-black">
+    All Repositories
+  </option>
 
-            {[...new Set(
-              activities.map((a) => a.repository)
-            )].map((repo) => (
-              <option key={repo} value={repo}>
-                {repo}
-              </option>
-            ))}
-          </select>
+  {[...new Set(activities.map((a) => a.repository))].map((repo) => (
+    <option
+      key={repo}
+      value={repo}
+      className="text-black"
+    >
+      {repo}
+    </option>
+  ))}
+</select>
         </div>
+        {/* Sort */}
+<div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
+  <span className="text-slate-400">
+    Sort:
+  </span>
+
+  <select
+    value={sortOrder}
+    onChange={(e) => setSortOrder(e.target.value)}
+    className="bg-transparent outline-none"
+  >
+    <option value="latest" className="text-black">
+      Latest First
+    </option>
+
+    <option value="oldest" className="text-black">
+      Oldest First
+    </option>
+  </select>
+</div>
       </div>
-<div className="flex justify-between items-center mt-6 mb-3">
+<div className="flex justify-between items-center mt-5 mb-2">
   <h2 className="text-xl font-semibold">
     Activity Events
   </h2>
@@ -227,17 +305,17 @@ setActivities(formattedActivities);
                 <th className="p-4">Type</th>
                 <th className="p-4">Repository</th>
                 <th className="p-4">Message</th>
-                <th className="p-4">Weight</th>
+                
                 <th className="p-4"></th>
               </tr>
             </thead>
 
             <tbody>
-              {filteredActivities.map((activity) => (
+              {currentActivities.map((activity) => (
                 <React.Fragment key={activity.id}>
                   <tr className="border-t border-slate-700 hover:bg-slate-800">
                     <td className="p-4">
-                      {activity.timestamp}
+                      {activity.displayTime}
                     </td>
 
                     <td className="p-4">
@@ -269,10 +347,6 @@ setActivities(formattedActivities);
                             25
                           ) + "..."
                         : activity.message}
-                    </td>
-
-                    <td className="p-4">
-                      {activity.weight}
                     </td>
 
                     <td className="p-4">
@@ -313,12 +387,8 @@ setActivities(formattedActivities);
                             {activity.repository}
                           </div>
 
-                          <div>
-                            <span className="font-bold">
-                              Impact Weight:
-                            </span>{" "}
-                            {activity.weight}
-                          </div>
+                          
+                        
                         </div>
                       </td>
                     </tr>
@@ -329,6 +399,27 @@ setActivities(formattedActivities);
           </table>
         </div>
       </div>
+      <div className="flex justify-center gap-4 mt-6">
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(currentPage - 1)}
+    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    Previous
+  </button>
+
+  <span>
+    Page {currentPage} of {totalPages}
+  </span>
+
+  <button
+    disabled={currentPage === totalPages}
+    onClick={() => setCurrentPage(currentPage + 1)}
+    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    Next
+  </button>
+</div>
     </div>
   );
 }

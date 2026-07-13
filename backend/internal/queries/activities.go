@@ -16,7 +16,7 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 			user_id,
 			type,
 			payload,
-			weight,
+			
 			logged_at,
 			created_at
 		FROM activities
@@ -28,7 +28,7 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 		&activity.UserID,
 		&activity.Type,
 		&activity.Payload,
-		&activity.Weight,
+
 		&activity.LoggedAt,
 		&activity.CreatedAt,
 	)
@@ -47,7 +47,7 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 			user_id,
 			type,
 			payload,
-			weight,
+		
 			logged_at,
 			created_at
 		FROM activities
@@ -71,7 +71,7 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 			&activity.UserID,
 			&activity.Type,
 			&activity.Payload,
-			&activity.Weight,
+
 			&activity.LoggedAt,
 			&activity.CreatedAt,
 		)
@@ -92,7 +92,7 @@ func GetAllActivities() ([]models.Activities, error) {
 			user_id,
 			type,
 			payload,
-			weight,
+			
 			logged_at,
 			created_at
 		FROM activities
@@ -115,7 +115,7 @@ func GetAllActivities() ([]models.Activities, error) {
 			&activity.UserID,
 			&activity.Type,
 			&activity.Payload,
-			&activity.Weight,
+
 			&activity.LoggedAt,
 			&activity.CreatedAt,
 		)
@@ -134,24 +134,23 @@ func CreateActivity(activity models.Activities) error {
 			user_id,
 			type,
 			payload,
-			weight,
 			logged_at
 		)
-		VALUES ($1, $2, $3, $4, $5)`
+		VALUES ($1, $2, $3, $4)`
 
 	_, err := database.DB.Exec(
 		query,
 		activity.UserID,
 		activity.Type,
 		activity.Payload,
-		activity.Weight,
+
 		activity.LoggedAt,
 	)
 	return err
 }
 func GetActivities() ([]models.Activities, error) {
 	rows, err := database.DB.Query(`
-        SELECT id, user_id, type, payload, weight, logged_at, created_at
+        SELECT id, user_id, type, payload, logged_at, created_at
         FROM activities
         ORDER BY logged_at DESC
     `)
@@ -170,7 +169,7 @@ func GetActivities() ([]models.Activities, error) {
 			&activity.UserID,
 			&activity.Type,
 			&activity.Payload,
-			&activity.Weight,
+
 			&activity.LoggedAt,
 			&activity.CreatedAt,
 		)
