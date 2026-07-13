@@ -12,15 +12,16 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 
 	query := `
 		SELECT
-			id,
-			user_id,
-			type,
-			payload,
-			
-			logged_at,
-			created_at
-		FROM activities
-		WHERE id = $1
+			a.id,
+			a.user_id,
+			a.type,
+			a.payload,
+			a.logged_at,
+			a.created_at,
+			COALESCE(u.first_name || ' ' || u.last_name, u.github_username, 'Unknown') AS developer_name
+		FROM activities a
+		LEFT JOIN users u ON a.user_id = u.id
+		WHERE a.id = $1
 	`
 
 	err := database.DB.QueryRow(query, id).Scan(
@@ -28,9 +29,9 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 		&activity.UserID,
 		&activity.Type,
 		&activity.Payload,
-
 		&activity.LoggedAt,
 		&activity.CreatedAt,
+		&activity.DeveloperName,
 	)
 
 	if err != nil {
@@ -43,16 +44,17 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 	query := `
 		SELECT
-			id,
-			user_id,
-			type,
-			payload,
-		
-			logged_at,
-			created_at
-		FROM activities
-		WHERE user_id = $1
-		ORDER BY logged_at DESC
+			a.id,
+			a.user_id,
+			a.type,
+			a.payload,
+			a.logged_at,
+			a.created_at,
+			COALESCE(u.first_name || ' ' || u.last_name, u.github_username, 'Unknown') AS developer_name
+		FROM activities a
+		LEFT JOIN users u ON a.user_id = u.id
+		WHERE a.user_id = $1
+		ORDER BY a.logged_at DESC
 	`
 
 	rows, err := database.DB.Query(query, userID)
@@ -71,9 +73,9 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 			&activity.UserID,
 			&activity.Type,
 			&activity.Payload,
-
 			&activity.LoggedAt,
 			&activity.CreatedAt,
+			&activity.DeveloperName,
 		)
 		if err != nil {
 			return nil, err
@@ -88,15 +90,16 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 func GetAllActivities() ([]models.Activities, error) {
 	query := `
 		SELECT
-			id,
-			user_id,
-			type,
-			payload,
-			
-			logged_at,
-			created_at
-		FROM activities
-		ORDER BY logged_at DESC
+			a.id,
+			a.user_id,
+			a.type,
+			a.payload,
+			a.logged_at,
+			a.created_at,
+			COALESCE(u.first_name || ' ' || u.last_name, u.github_username, 'Unknown') AS developer_name
+		FROM activities a
+		LEFT JOIN users u ON a.user_id = u.id
+		ORDER BY a.logged_at DESC
 	`
 
 	rows, err := database.DB.Query(query)
@@ -115,9 +118,9 @@ func GetAllActivities() ([]models.Activities, error) {
 			&activity.UserID,
 			&activity.Type,
 			&activity.Payload,
-
 			&activity.LoggedAt,
 			&activity.CreatedAt,
+			&activity.DeveloperName,
 		)
 		if err != nil {
 			return nil, err
@@ -178,7 +181,6 @@ func GetActivities() ([]models.Activities, error) {
 			&activity.UserID,
 			&activity.Type,
 			&activity.Payload,
-
 			&activity.LoggedAt,
 			&activity.CreatedAt,
 			&activity.DeveloperName,
@@ -193,3 +195,57 @@ func GetActivities() ([]models.Activities, error) {
 
 	return activities, nil
 }
+
+func FindIssueActivity(issueNumber int, repoName string, repoFullName string) (*models.Activities, error) {
+	var activity models.Activities
+
+	query := `
+		SELECT
+			id,
+			user_id,
+			type,
+			payload,
+			logged_at,
+			created_at
+		FROM activities
+		WHERE (type = 'open_issue' OR type = 'task_completed')
+		  AND (payload->>'issue_number')::int = $1
+		  AND (payload->>'repository' = $2 OR payload->>'repository' = $3)
+		LIMIT 1
+	`
+
+	err := database.DB.QueryRow(query, issueNumber, repoName, repoFullName).Scan(
+		&activity.ID,
+		&activity.UserID,
+		&activity.Type,
+		&activity.Payload,
+		&activity.LoggedAt,
+		&activity.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &activity, nil
+}
+
+func UpdateActivity(activity models.Activities) error {
+	query := `
+		UPDATE activities
+		SET type = $1,
+		    payload = $2,
+		    logged_at = $3
+		WHERE id = $4
+	`
+
+	_, err := database.DB.Exec(
+		query,
+		activity.Type,
+		activity.Payload,
+		activity.LoggedAt,
+		activity.ID,
+	)
+	return err
+}
+

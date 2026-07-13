@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,7 +15,7 @@ func HandleIssueRequest(c *gin.Context) {
 	var payload models.IssuePayload
 
 	if err := c.ShouldBindBodyWithJSON(&payload); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid PR payload"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid issue payload"})
 		return
 	}
 
@@ -27,26 +28,27 @@ func HandleIssueRequest(c *gin.Context) {
 	}
 
 	creator, err := queries.GetUserByGithubUsername(payload.Issue.User.Login)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Issue creator GitHub account not linked",
-		})
-		return
+	var creatorID *string
+	var creatorUsername string = payload.Issue.User.Login
+	if err == nil && creator != nil {
+		idStr := creator.ID.String()
+		creatorID = &idStr
+		creatorUsername = creator.GithubUsername
 	}
 
 	activityPayload := map[string]any{
-		"repository":   payload.Repository.FullName,
-		"issue_number": payload.Issue.Number,
-		"title":        payload.Issue.Title,
-		"state":        payload.Issue.State,
-
-		"created_by_user_id": creator.ID,
+		"repository":         payload.Repository.FullName,
+		"issue_number":       payload.Issue.Number,
+		"title":              payload.Issue.Title,
+		"state":              payload.Issue.State,
+		"created_by_user_id": creatorID,
 		"action_by_user_id":  actor.ID,
-
-		"created_at": payload.Issue.CreatedAt,
-		"closed_at":  payload.Issue.ClosedAt,
-
-		"url": payload.Issue.HTMLURL,
+		"created_by":         creatorUsername,
+		"action_by":          actor.GithubUsername,
+		"developer":          actor.GithubUsername,
+		"created_at":         payload.Issue.CreatedAt,
+		"closed_at":          payload.Issue.ClosedAt,
+		"url":                payload.Issue.HTMLURL,
 	}
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
@@ -60,7 +62,7 @@ func HandleIssueRequest(c *gin.Context) {
 	var loggedAt time.Time
 
 	switch payload.Action {
-	case "opened":
+	case "opened", "reopened":
 		activityType = models.ActivityIssueOpened
 		loggedAt = payload.Issue.CreatedAt
 	case "closed":
@@ -69,7 +71,26 @@ func HandleIssueRequest(c *gin.Context) {
 
 	default:
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Issue action ignored",
+			"message": fmt.Sprintf("Issue action '%s' ignored", payload.Action),
+		})
+		return
+	}
+
+	existingActivity, err := queries.FindIssueActivity(payload.Issue.Number, payload.Repository.Name, payload.Repository.FullName)
+	if err == nil && existingActivity != nil {
+		existingActivity.Type = activityType
+		existingActivity.Payload = payloadJSON
+		existingActivity.LoggedAt = loggedAt
+
+		err = queries.UpdateActivity(*existingActivity)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to update activity",
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Issue activity updated successfully",
 		})
 		return
 	}
@@ -92,3 +113,4 @@ func HandleIssueRequest(c *gin.Context) {
 		"message": "Issue activity stored successfully",
 	})
 }
+

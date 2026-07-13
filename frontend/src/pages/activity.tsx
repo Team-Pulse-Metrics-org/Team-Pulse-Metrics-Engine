@@ -45,10 +45,10 @@ console.log("Developer field:", payload.created_by);
     activity.logged_at
     ).toLocaleString(),
 
-   developer:
-    activity.developer_name ||
-  payload.developer||
-  payload.author ||
+    developer:
+      activity.developer_name ||
+      payload.developer ||
+      payload.author ||
   payload.action_by ||
   payload.created_by ||
   payload.sender?.login ||
@@ -62,11 +62,12 @@ console.log("Developer field:", payload.created_by);
       payload.repository ||
       "Unknown",
 
-   message:
-  payload.message ||
-  payload.commits?.[0]?.message ||
-  payload.pull_request?.title ||
-  "No message",
+    message:
+      payload.message ||
+      payload.commits?.[0]?.message ||
+      payload.pull_request?.title ||
+      payload.title ||
+      "No message",
   
   };
 });
@@ -223,15 +224,22 @@ const totalPages = Math.ceil(
     All Types
   </option>
 
-  {[...new Set(activities.map((a) => a.type))].map((type) => (
-    <option
-      key={type}
-      value={type}
-      className="text-black"
-    >
-      {type}
-    </option>
-  ))}
+  {[...new Set(activities.map((a) => a.type))].map((type) => {
+    let displayType = type;
+    if (type === "git_commit") displayType = "Git Commit";
+    else if (type === "pull_request_closed") displayType = "PR Closed";
+    else if (type === "open_issue") displayType = "Issue Opened";
+    else if (type === "task_completed") displayType = "Issue Closed";
+    return (
+      <option
+        key={type}
+        value={type}
+        className="text-black"
+      >
+        {displayType}
+      </option>
+    );
+  })}
 </select>
          
         </div>
@@ -324,18 +332,30 @@ const totalPages = Math.ceil(
                     </td>
 
                     <td className="p-4">
-                  <span
-              className={`px-2 py-1 rounded-md text-sm text-white ${
-              activity.type === "git_commit"
-              ? "bg-blue-600"
-        : activity.type === "pull_request_closed"
-        ? "bg-green-600"
-        : "bg-red-600"
-    }`}
-  >
-    {activity.type}
-  </span>
-</td>
+                      <span
+                        className={`px-2 py-1 rounded-md text-sm text-white ${
+                          activity.type === "git_commit"
+                            ? "bg-blue-600"
+                            : activity.type === "pull_request_closed"
+                            ? "bg-green-600"
+                            : activity.type === "open_issue"
+                            ? "bg-orange-600"
+                            : activity.type === "task_completed"
+                            ? "bg-rose-600"
+                            : "bg-red-600"
+                        }`}
+                      >
+                        {activity.type === "git_commit"
+                          ? "Git Commit"
+                          : activity.type === "pull_request_closed"
+                          ? "PR Closed"
+                          : activity.type === "open_issue"
+                          ? "Issue Opened"
+                          : activity.type === "task_completed"
+                          ? "Issue Closed"
+                          : activity.type}
+                      </span>
+                    </td>
 
                     <td className="p-4">
                       {activity.repository}
