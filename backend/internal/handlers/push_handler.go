@@ -43,13 +43,12 @@ func HandlePush(c *gin.Context) {
 	activityPayload := map[string]any{
 		"repository":   payload.Repository.Name,
 		"branch":       branch,
-		"author":       user.FirstName + " " + user.LastName,
+		"author":       payload.Pusher.Name,
 		"author_email": payload.Pusher.Email,
 		"commit_count": len(payload.Commits),
 		"commits":      commits,
 	}
-	fmt.Println("Github username:", payload.Pusher.Name)
-	fmt.Println("Database name:", user.FirstName+" "+user.LastName)
+
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
