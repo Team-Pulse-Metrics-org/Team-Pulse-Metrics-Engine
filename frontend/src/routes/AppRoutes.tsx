@@ -6,16 +6,18 @@ import Layout from "../layouts/dashboardlayout";
 import Profile from "../pages/profile";
 import Login from "../pages/login";
 import AuthCallback from "../pages/AuthCallback";
-
+import Home from "../pages/Home";
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
       <Route element={<Layout />}>
         {/* <Route index element={<Dashboard />} /> */}
+        
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="profile" element={<Profile />} />
         <Route path="metrics" element={<Metrics />} />
