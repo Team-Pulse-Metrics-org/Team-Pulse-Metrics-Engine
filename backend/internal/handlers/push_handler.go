@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
@@ -28,7 +27,6 @@ func HandlePush(c *gin.Context) {
 		return
 	}
 
-	branch := strings.TrimPrefix(payload.Ref, "refs/heads/")
 
 	for _, commit := range payload.Commits {
 
@@ -38,7 +36,6 @@ func HandlePush(c *gin.Context) {
 
 		activityPayload := map[string]any{
 			"repository": payload.Repository.Name,
-			"branch":     branch,
 			"author":     actor.ID,
 			"sha":        commit.ID,
 			"message":    commit.Message,
