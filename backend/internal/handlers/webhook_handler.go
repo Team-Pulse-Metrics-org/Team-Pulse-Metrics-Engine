@@ -17,6 +17,8 @@ func HandleWebhook(c *gin.Context) {
 		HandlePullRequest(c)
 	case "push":
 		HandlePush(c)
+	case "issues":
+		HandleIssueRequest(c)
 	case "ping":
 		fmt.Println("pong")
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
