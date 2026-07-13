@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -28,6 +29,7 @@ func HandleGithubLogin(c *gin.Context) {
 		ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 		ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
 		Endpoint:     github.Endpoint,
+		Scopes:       []string{"user:email"},
 	}
 
 	token, err := config.Exchange(context.Background(), req.Code)
@@ -46,10 +48,25 @@ func HandleGithubLogin(c *gin.Context) {
 
 	var ghResponse models.GithubResponse
 
-	json.NewDecoder(resp.Body).Decode(&ghResponse)
+	if err := json.NewDecoder(resp.Body).Decode(&ghResponse); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to parse github profile"})
+		return
+	}
+
+	if ghResponse.Email == "" {
+		if email, err := fetchPrimaryEmail(client); err != nil {
+			log.Println("failed to fetch github emails: ", err)
+		} else {
+			ghResponse.Email = email
+		}
+	}
 
 	//Check database if user exists or not
-	user, err := queries.GetUserByEmail(ghResponse.Email)
+	githubID := strconv.Itoa(ghResponse.ID)
+	user, err := queries.GetUserByGithubID(githubID)
+
+	log.Println("user:", user)
+	log.Println("error", err)
 	if err != nil {
 
 		// User doesn't exist, create a new one
@@ -72,7 +89,7 @@ func HandleGithubLogin(c *gin.Context) {
 				FirstName:      firstName,
 				LastName:       lastName,
 				Role:           models.RoleDeveloper,
-				GithubID:       strconv.Itoa(ghResponse.ID),
+				GithubID:       githubID,
 				GithubUsername: ghResponse.Login,
 			}
 
@@ -98,8 +115,6 @@ func HandleGithubLogin(c *gin.Context) {
 	userEmail := user.Email
 	userRole := string(user.Role)
 
-	//need to write the logic for find or create user
-
 	appToken, err := auth.GenerateJWTToken(userID, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to generate session token"})
@@ -115,5 +130,35 @@ func HandleGithubLogin(c *gin.Context) {
 			Role:  userRole,
 		},
 	})
-
 }
+
+func fetchPrimaryEmail(client *http.Client) (string, error) {
+	resp, err := client.Get("https://api.github.com/user/emails")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var emails []models.GithubEmail
+	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
+		return "", err
+	}
+
+	for _, e := range emails {
+		if e.Primary && e.Verified {
+			return e.Email, nil
+		}
+	}
+
+	for _, e := range emails {
+		if e.Verified {
+			return e.Email, nil
+		}
+	}
+
+	return "", nil
+}
+
+// func HandleLogout(c *gin.Context) {
+
+// }

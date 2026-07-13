@@ -22,3 +22,9 @@ type GithubResponse struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
 }
+
+type GithubEmail struct {
+	Email    string `json:"email"`
+	Primary  bool   `json:"primary"`
+	Verified bool   `json:"verified"`
+}
