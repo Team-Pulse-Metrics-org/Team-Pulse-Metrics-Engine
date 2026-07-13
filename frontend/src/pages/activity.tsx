@@ -46,7 +46,8 @@ console.log("Developer field:", payload.created_by);
     ).toLocaleString(),
 
    developer:
-  payload.developer ||
+    activity.developer_name ||
+  payload.developer||
   payload.author ||
   payload.action_by ||
   payload.created_by ||
@@ -61,11 +62,11 @@ console.log("Developer field:", payload.created_by);
       payload.repository ||
       "Unknown",
 
-    message:
-      payload.commits?.[0]?.message ||
-      payload.pull_request?.title ||
-      "No message",
-
+   message:
+  payload.message ||
+  payload.commits?.[0]?.message ||
+  payload.pull_request?.title ||
+  "No message",
   
   };
 });

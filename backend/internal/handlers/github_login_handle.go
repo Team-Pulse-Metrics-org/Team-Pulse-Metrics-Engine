@@ -4,11 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-<<<<<<< Updated upstream
 	"log"
-=======
-
->>>>>>> Stashed changes
 	"net/http"
 	"os"
 	"strconv"

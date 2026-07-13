@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 export default function Home() {
+  const [showFeatures, setShowFeatures] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+
   return (
     //navigation
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Navbar */}
-      <nav className="flex justify-between items-center px-10 py-5 border-b border-slate-800">
+      <nav className="w-full flex justify-between items-center px-16 py-6 border-b border-slate-800">
         {/* Logo */}
         <div className="text-3xl font-bold">
           <span className="text-cyan-400">Team</span>
@@ -13,23 +17,27 @@ export default function Home() {
 
         {/* Navigation Links */}
         <div className="flex items-center gap-8 text-lg">
-          <a
-            href="#features"
-            className="hover:text-cyan-400 transition duration-200"
-          >
-            Features
-          </a>
+          <button
+  onClick={() => {
+    setShowFeatures(true);
+    setShowAbout(false);
+  }}
+  className="hover:text-cyan-400 transition duration-200"
+>
 
-          <a
-            href="#about"
-            className="hover:text-cyan-400 transition duration-200"
-          >
-            About
-          </a>
+  Features
+</button>
 
-          
-
-          <Link
+<button
+  onClick={() => {
+    setShowAbout(true);
+    setShowFeatures(false);
+  }}
+  className="hover:text-cyan-400 transition duration-200"
+>
+  About
+</button>
+<Link
   to="/login"
   className="bg-cyan-500 hover:bg-cyan-600 px-6 py-3 rounded-xl font-semibold transition"
 >
@@ -38,7 +46,7 @@ export default function Home() {
         </div>
       </nav>
        {/*hero section lil details*/} 
-      <section className="flex flex-col items-center justify-center text-center mt-32 px-6">
+<section className="flex flex-col items-center justify-center text-center mt-32 px-6">
   <h1 className="text-6xl font-extrabold leading-tight max-w-5xl">
     Track Engineering Productivity
     <span className="text-cyan-400"> in Real Time</span>
@@ -49,27 +57,20 @@ export default function Home() {
     engineering blockers from a single intelligent platform.
   </p>
 
-  <div className="flex gap-6 mt-10">
+  <div className="mt-10">
     <Link
   to="/login"
   className="bg-cyan-500 hover:bg-cyan-600 px-10 py-4 rounded-2xl font-semibold transition"
->
+  >
   Get Started
-</Link>
+  </Link>
 
-    <Link
-  to="/dashboard"
-  className="border border-slate-700 px-10 py-4 rounded-2xl font-semibold hover:border-cyan-400 transition"
->
-  View Dashboard
-</Link>
   </div>
 </section>
 {/*features*/}
-<section
-  id="features"
-  className="mt-40 px-10 py-20"
->
+{showFeatures && (
+<section className="mt-40 px-10 py-20">
+ 
   <h2 className="text-5xl font-bold text-center mb-16">
     Features
   </h2>
@@ -125,7 +126,7 @@ transition-all duration-300">
         Measure completed tasks and delivery velocity.
       </p>
     </div>
-
+ 
     <div className="
 bg-slate-900/70 backdrop-blur-lg p-8
 rounded-2xl
@@ -146,10 +147,9 @@ transition-all duration-300
     </div>
   </div>
 </section>
-<section
-  id="about"
-  className="py-24 px-10 text-center"
->
+)}
+{showAbout && (
+  <section className="py-24 px-10 text-center">
   <h2 className="text-5xl font-bold mb-8">
     About Team Pulse
   </h2>
@@ -170,7 +170,10 @@ transition-all duration-300
       focus more on development and collaboration.
     </p>
   </div>
+ 
 </section>
+)}
     </div>
+     
   );
 }
