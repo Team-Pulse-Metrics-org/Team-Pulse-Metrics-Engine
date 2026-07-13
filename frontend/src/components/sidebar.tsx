@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 import { BsArrowLeftShort } from "react-icons/bs";
 import { AiOutlineAntDesign } from "react-icons/ai";
-import {LuLayoutDashboard,LuActivity,LuCircleUserRound,LuLogOut,} from "react-icons/lu";
+import {
+  LuLayoutDashboard,
+  LuActivity,
+  LuCircleUserRound,
+  LuLogOut,
+} from "react-icons/lu";
 import { BiBarChartAlt } from "react-icons/bi";
 
 function Sidebar() {
   const [open, setOpen] = useState(true);
+  const navigate = useNavigate();
 
   const menus = [
     {
@@ -26,6 +32,11 @@ function Sidebar() {
       icon: <LuActivity />,
     },
   ];
+
+  const handleSignout = () => {
+    localStorage.removeItem("app_token");
+    navigate("/login", { replace: true });
+  };
 
   return (
     <aside
@@ -86,11 +97,7 @@ function Sidebar() {
 
             <span
               className={`whitespace-nowrap duration-300
-              ${
-                open
-                  ? "opacity-100"
-                  : "opacity-0 w-0 overflow-hidden"
-              }`}
+              ${open ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}
             >
               {menu.title}
             </span>
@@ -118,17 +125,14 @@ function Sidebar() {
 
           <span
             className={`whitespace-nowrap duration-300
-            ${
-              open
-                ? "opacity-100"
-                : "opacity-0 w-0 overflow-hidden"
-            }`}
+            ${open ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}
           >
             Profile
           </span>
         </NavLink>
 
         <button
+          onClick={handleSignout}
           className={`flex items-center w-full rounded-md p-3 mt-2
           duration-200
           ${open ? "justify-start" : "justify-center"}
@@ -138,11 +142,7 @@ function Sidebar() {
 
           <span
             className={`whitespace-nowrap duration-300
-            ${
-              open
-                ? "opacity-100"
-                : "opacity-0 w-0 overflow-hidden"
-            }`}
+            ${open ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}
           >
             Sign Out
           </span>

@@ -138,7 +138,7 @@ func GetAllUsers() ([]models.Users, error) {
 	return users, nil
 }
 
-func CreateUser(user *models.Users)(*models.Users, error){
+func CreateUser(user *models.Users) (*models.Users, error) {
 	query := `
 			INSERT INTO users (
 				email,
@@ -161,7 +161,7 @@ func CreateUser(user *models.Users)(*models.Users, error){
 				github_username,
 				created_at,
 				updated_at
-			`	
+			`
 	err := database.DB.QueryRow(
 		query,
 		user.Email,
@@ -187,13 +187,13 @@ func CreateUser(user *models.Users)(*models.Users, error){
 	}
 
 	return user, nil
-	
+
 }
 
-func GetUserByGithubUsername(username string) (*models.Users,error){
+func GetUserByGithubUsername(username string) (*models.Users, error) {
 	var user models.Users
 
-	query:=`SELECT
+	query := `SELECT
 			id,
 			email,
 			first_name,
@@ -205,8 +205,7 @@ func GetUserByGithubUsername(username string) (*models.Users,error){
 			updated_at
 		FROM users
 		WHERE github_username = $1;`
-	
-	
+
 	err := database.DB.QueryRow(query, username).Scan(
 		&user.ID,
 		&user.Email,
@@ -220,9 +219,51 @@ func GetUserByGithubUsername(username string) (*models.Users,error){
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-		if err != nil {
+	if err != nil {
 		return nil, err
 	}
 
 	return &user, nil
+}
+
+func GetUserByGithubID(githubID string) (*models.Users, error) {
+	var user models.Users
+
+	query := `
+		SELECT
+			id,
+			email,
+			
+			first_name,
+			last_name,
+			role,
+			github_id,
+            github_username,
+    
+			created_at,
+			updated_at
+		FROM users
+		WHERE github_id = $1
+	`
+
+	err := database.DB.QueryRow(query, githubID).Scan(
+		&user.ID,
+		&user.Email,
+
+		&user.FirstName,
+		&user.LastName,
+		&user.Role,
+		&user.GithubID,
+		&user.GithubUsername,
+
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+
 }

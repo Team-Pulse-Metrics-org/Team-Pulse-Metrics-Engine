@@ -69,7 +69,5 @@ func HandlePush(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Push activity stored successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Push activity stored successfully"})
 }

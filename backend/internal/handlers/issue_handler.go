@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func HandleIssueRequest(c *gin.Context){
+func HandleIssueRequest(c *gin.Context) {
 	var payload models.IssuePayload
 
 	if err := c.ShouldBindBodyWithJSON(&payload); err != nil {
@@ -35,10 +35,10 @@ func HandleIssueRequest(c *gin.Context){
 	}
 
 	activityPayload := map[string]any{
-		"repository":         payload.Repository.FullName,
-		"issue_number":       payload.Issue.Number,
-		"title":              payload.Issue.Title,
-		"state":              payload.Issue.State,
+		"repository":   payload.Repository.FullName,
+		"issue_number": payload.Issue.Number,
+		"title":        payload.Issue.Title,
+		"state":        payload.Issue.State,
 
 		"created_by_user_id": creator.ID,
 		"action_by_user_id":  actor.ID,
@@ -60,19 +60,19 @@ func HandleIssueRequest(c *gin.Context){
 	var loggedAt time.Time
 
 	switch payload.Action {
-		case "opened":
-			activityType = models.ActivityIssueOpened
-			loggedAt = payload.Issue.CreatedAt
-		case "closed":
-			activityType = models.ActivityTaskCompleted
-			loggedAt = payload.Issue.ClosedAt
+	case "opened":
+		activityType = models.ActivityIssueOpened
+		loggedAt = payload.Issue.CreatedAt
+	case "closed":
+		activityType = models.ActivityTaskCompleted
+		loggedAt = payload.Issue.ClosedAt
 
-		default:
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Issue action ignored",
-			})
-			return
-		}
+	default:
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Issue action ignored",
+		})
+		return
+	}
 
 	activity := models.Activities{
 		UserID:   actor.ID,
