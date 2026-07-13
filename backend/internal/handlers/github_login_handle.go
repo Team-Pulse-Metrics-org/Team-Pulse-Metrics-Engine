@@ -65,8 +65,6 @@ func HandleGithubLogin(c *gin.Context) {
 	githubID := strconv.Itoa(ghResponse.ID)
 	user, err := queries.GetUserByGithubID(githubID)
 
-	log.Println("user:", user)
-	log.Println("error", err)
 	if err != nil {
 
 		// User doesn't exist, create a new one
