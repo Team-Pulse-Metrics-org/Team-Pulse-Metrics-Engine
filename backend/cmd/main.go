@@ -39,6 +39,7 @@ func main() {
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
 	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
 	r.GET("/api/v1/activities", handlers.GetActivities)
+	r.GET("/api/v1/dashboard", handlers.GetDashboard)
 
 	l.Info().
 		Str("port", port).Msgf("Starting Team Pulse Metrics Server on port '%s'", port)

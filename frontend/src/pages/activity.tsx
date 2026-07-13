@@ -45,9 +45,10 @@ console.log("Developer field:", payload.created_by);
     activity.logged_at
     ).toLocaleString(),
 
-   developer:
-  payload.developer ||
-  payload.author ||
+    developer:
+      activity.developer_name ||
+      payload.developer ||
+      payload.author ||
   payload.action_by ||
   payload.created_by ||
   payload.sender?.login ||
@@ -62,10 +63,11 @@ console.log("Developer field:", payload.created_by);
       "Unknown",
 
     message:
+      payload.message ||
       payload.commits?.[0]?.message ||
       payload.pull_request?.title ||
+      payload.title ||
       "No message",
-
   
   };
 });
@@ -222,15 +224,22 @@ const totalPages = Math.ceil(
     All Types
   </option>
 
-  {[...new Set(activities.map((a) => a.type))].map((type) => (
-    <option
-      key={type}
-      value={type}
-      className="text-black"
-    >
-      {type}
-    </option>
-  ))}
+  {[...new Set(activities.map((a) => a.type))].map((type) => {
+    let displayType = type;
+    if (type === "git_commit") displayType = "Git Commit";
+    else if (type === "pull_request_closed") displayType = "PR Closed";
+    else if (type === "open_issue") displayType = "Issue Opened";
+    else if (type === "task_completed") displayType = "Issue Closed";
+    return (
+      <option
+        key={type}
+        value={type}
+        className="text-black"
+      >
+        {displayType}
+      </option>
+    );
+  })}
 </select>
          
         </div>
@@ -323,18 +332,30 @@ const totalPages = Math.ceil(
                     </td>
 
                     <td className="p-4">
-                  <span
-              className={`px-2 py-1 rounded-md text-sm text-white ${
-              activity.type === "git_commit"
-              ? "bg-blue-600"
-        : activity.type === "pull_request_closed"
-        ? "bg-green-600"
-        : "bg-red-600"
-    }`}
-  >
-    {activity.type}
-  </span>
-</td>
+                      <span
+                        className={`px-2 py-1 rounded-md text-sm text-white ${
+                          activity.type === "git_commit"
+                            ? "bg-blue-600"
+                            : activity.type === "pull_request_closed"
+                            ? "bg-green-600"
+                            : activity.type === "open_issue"
+                            ? "bg-orange-600"
+                            : activity.type === "task_completed"
+                            ? "bg-rose-600"
+                            : "bg-red-600"
+                        }`}
+                      >
+                        {activity.type === "git_commit"
+                          ? "Git Commit"
+                          : activity.type === "pull_request_closed"
+                          ? "PR Closed"
+                          : activity.type === "open_issue"
+                          ? "Issue Opened"
+                          : activity.type === "task_completed"
+                          ? "Issue Closed"
+                          : activity.type}
+                      </span>
+                    </td>
 
                     <td className="p-4">
                       {activity.repository}
@@ -399,25 +420,38 @@ const totalPages = Math.ceil(
           </table>
         </div>
       </div>
-      <div className="flex justify-center gap-4 mt-6">
+      <div className="flex justify-center items-center gap-2 mt-4">
+  {/* Previous Arrow */}
   <button
     disabled={currentPage === 1}
     onClick={() => setCurrentPage(currentPage - 1)}
-    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+    className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
   >
-    Previous
+    &lt;
   </button>
 
-  <span>
-    Page {currentPage} of {totalPages}
-  </span>
+  {/* Page Numbers */}
+  {Array.from({ length: totalPages }, (_, index) => (
+    <button
+      key={index}
+      onClick={() => setCurrentPage(index + 1)}
+      className={`px-3 py-2 rounded ${
+        currentPage === index + 1
+          ? "bg-white text-black"
+          : "bg-slate-700 hover:bg-slate-600"
+      }`}
+    >
+      {index + 1}
+    </button>
+  ))}
 
+  {/* Next Arrow */}
   <button
     disabled={currentPage === totalPages}
     onClick={() => setCurrentPage(currentPage + 1)}
-    className="px-4 py-2 bg-slate-700 rounded disabled:opacity-50"
+    className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
   >
-    Next
+    &gt;
   </button>
 </div>
     </div>

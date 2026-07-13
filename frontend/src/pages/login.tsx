@@ -5,6 +5,10 @@ import { FaGithub } from "react-icons/fa";
 
 function handleGitHubLogin() {
   const CLIENT_ID: string = import.meta.env.VITE_GITHUB_CLIENT_ID;
+
+
+  console.log(CLIENT_ID)
+
   const REDIRECT_URI: string = "http://localhost:5173/auth/callback";
   const SCOPE: string = "user,public_repo";
 
