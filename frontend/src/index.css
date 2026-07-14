@@ -3,4 +3,415 @@
 
 @theme {
   --font-inter: "Inter", sans-serif;
+
+  /* Dynamically map Tailwind's Slate color scale to custom variables */
+  --color-slate-50: var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-800: var(--slate-800);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+
+  /* Dynamically map Cyan to primary indigo colors */
+  --color-cyan-400: var(--cyan-400);
+  --color-cyan-500: var(--cyan-500);
+  --color-cyan-600: var(--cyan-600);
+
+  /* Dynamic status and badge colors for contrast */
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  
+  --color-violet-400: var(--violet-400);
+  --color-violet-500: var(--violet-500);
+  --color-violet-600: var(--violet-600);
+
+  --color-pink-400: var(--pink-400);
+  --color-pink-500: var(--pink-500);
+  
+  --color-orange-400: var(--orange-400);
+  --color-orange-500: var(--orange-500);
+
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-500: var(--emerald-500);
+  
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+
+  --color-rose-400: var(--rose-400);
+  --color-rose-500: var(--rose-500);
+}
+
+/* Light Theme (Default - Clean High-Contrast Slate & Indigo Accents) */
+:root {
+  --slate-50: #090D16;   /* darkest text/headings */
+  --slate-100: #0F172A;  /* primary text */
+  --slate-200: #1E293B;  /* sub-headers */
+  --slate-300: #334155;
+  --slate-400: #475569;  /* secondary text */
+  --slate-500: #64748B;
+  --slate-600: #94A3B8;
+  --slate-700: #CBD5E1;
+  --slate-800: #E2E8F0;  /* standard light borders */
+  --slate-900: #FFFFFF;  /* card background */
+  --slate-950: #F8FAFC;  /* page background */
+
+  --cyan-400: #6366F1;   /* indigo accent text */
+  --cyan-500: #6366F1;   /* primary brand indigo */
+  --cyan-600: #4F46E5;   /* hover brand indigo */
+
+  /* High contrast status colors for light card backgrounds */
+  --blue-400: #1D4ED8;     /* blue-700 */
+  --blue-500: #2563EB;     /* blue-600 */
+  --blue-600: #1D4ED8;
+  
+  --violet-400: #6D28D9;   /* violet-700 */
+  --violet-500: #7C3AED;   /* violet-600 */
+  --violet-600: #6D28D9;
+
+  --pink-400: #BE185D;     /* pink-700 */
+  --pink-500: #DB2777;     /* pink-600 */
+
+  --orange-400: #C2410C;   /* orange-700 */
+  --orange-500: #EA580C;   /* orange-600 */
+
+  --emerald-400: #047857;  /* emerald-700 */
+  --emerald-500: #059669;  /* emerald-600 */
+
+  --green-400: #047857;    /* green-700 */
+  --green-500: #059669;    /* green-600 */
+
+  --rose-400: #B91C1C;     /* rose-700 */
+  --rose-500: #DC2626;     /* rose-600 */
+}
+
+/* Dark Theme (Deep Cosmic Blues & Indigo Highlights) */
+.dark {
+  --slate-50: #F8FAFC;   /* pure white headings */
+  --slate-100: #F1F5F9;  /* primary light text */
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;  /* secondary text */
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E2235;  /* cosmic dark borders */
+  --slate-900: #11131E;  /* cosmic card background */
+  --slate-950: #090A0F;  /* cosmic page background */
+
+  --cyan-400: #818CF8;   /* indigo accent text */
+  --cyan-500: #818CF8;   /* primary brand indigo */
+  --cyan-600: #6366F1;   /* hover brand indigo */
+
+  /* Vibrant, glowing status colors for dark mode backgrounds */
+  --blue-400: #60A5FA;
+  --blue-500: #3B82F6;
+  --blue-600: #2563EB;
+  
+  --violet-400: #A78BFA;
+  --violet-500: #8B5CF6;
+  --violet-600: #7C3AED;
+
+  --pink-400: #F472B6;
+  --pink-500: #EC4899;
+
+  --orange-400: #FB923C;
+  --orange-500: #F97316;
+
+  --emerald-400: #34D399;
+  --emerald-500: #10B981;
+
+  --green-400: #34D399;
+  --green-500: #10B981;
+
+  --rose-400: #F87171;
+  --rose-500: #EF4444;
+}
+
+/* --- Premium Design Enhancements & Anti-Aliasing --- */
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom selection highlight color */
+::selection {
+  background-color: rgba(99, 102, 241, 0.25);
+  color: inherit;
+}
+
+/* Custom, sleek scrollbar design */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--slate-700);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--slate-600);
+}
+
+/* 1. Immersive Dot-Grid Background & Subtle Aurora Glows */
+.bg-slate-950 {
+  background-color: var(--slate-950) !important;
+  background-image: 
+    radial-gradient(var(--slate-800) 1.2px, transparent 1.2px),
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.02) 0px, transparent 50%);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
+}
+.dark .bg-slate-950 {
+  background-color: var(--slate-950) !important;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.02) 1.2px, transparent 1.2px),
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.06) 0px, transparent 50%);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
+}
+
+/* 2. Glassmorphic Card Surface Enhancements (Static, No hover animations) */
+.bg-slate-900 {
+  border-color: var(--slate-800) !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background-color: var(--slate-900) !important;
+}
+.dark .bg-slate-900 {
+  background-color: rgba(17, 19, 30, 0.7) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.03);
+}
+
+/* 3. Glassmorphic Sidebar Blending & Collapse Animation */
+aside.bg-slate-900 {
+  border-right: 1px solid var(--slate-800) !important;
+  box-shadow: none;
+}
+.dark aside.bg-slate-900 {
+  background-color: rgba(9, 10, 15, 0.7) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Specific smooth transitions ONLY on the sidebar when expanding/collapsing */
+aside.bg-slate-900,
+aside.bg-slate-900 *,
+aside.bg-slate-900 svg,
+aside.bg-slate-900 span,
+aside.bg-slate-900 h1 {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 300ms cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 200ms ease, 
+              background-color 200ms ease, 
+              color 150ms ease !important;
+}
+
+/* 4. Beautiful Input Focus & Hover States */
+input, select {
+  border: 1px solid var(--slate-800) !important;
+}
+input:focus, select:focus {
+  border-color: var(--cyan-400) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  outline: none;
+}
+
+/* 5. High-Contrast Glass Badges for Recent Activity Tags (Overrides hardcoded text-white) */
+span.text-blue-400,
+span.text-green-400,
+span.text-emerald-400,
+span.text-orange-400,
+span.text-rose-400 {
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+}
+
+/* Specific Badge Adjustments for Light Mode */
+:root {
+  /* Commit (Blue) */
+  --badge-blue-bg: rgba(37, 99, 235, 0.08);
+  --badge-blue-border: rgba(37, 99, 235, 0.2);
+  --badge-blue-text: #1d4ed8;
+
+  /* PR Closed (Green) */
+  --badge-green-bg: rgba(5, 150, 105, 0.08);
+  --badge-green-border: rgba(5, 150, 105, 0.2);
+  --badge-green-text: #047857;
+
+  /* Issue Opened (Orange) */
+  --badge-orange-bg: rgba(217, 119, 6, 0.08);
+  --badge-orange-border: rgba(217, 119, 6, 0.2);
+  --badge-orange-text: #b45309;
+
+  /* Issue Closed / Blockers (Rose) */
+  --badge-rose-bg: rgba(220, 38, 38, 0.08);
+  --badge-rose-border: rgba(220, 38, 38, 0.2);
+  --badge-rose-text: #b91c1c;
+}
+
+/* Specific Badge Adjustments for Dark Mode */
+.dark {
+  /* Commit (Blue) */
+  --badge-blue-bg: rgba(96, 165, 250, 0.12);
+  --badge-blue-border: rgba(96, 165, 250, 0.25);
+  --badge-blue-text: #93c5fd;
+
+  /* PR Closed (Green) */
+  --badge-green-bg: rgba(52, 211, 153, 0.12);
+  --badge-green-border: rgba(52, 211, 153, 0.25);
+  --badge-green-text: #a7f3d0;
+
+  /* Issue Opened (Orange) */
+  --badge-orange-bg: rgba(251, 146, 60, 0.12);
+  --badge-orange-border: rgba(251, 146, 60, 0.25);
+  --badge-orange-text: #fed7aa;
+
+  /* Issue Closed / Blockers (Rose) */
+  --badge-rose-bg: rgba(248, 113, 113, 0.12);
+  --badge-rose-border: rgba(248, 113, 113, 0.25);
+  --badge-rose-text: #fecaca;
+}
+
+/* Apply forced variables to override tailwind specificity */
+span.text-blue-400 {
+  background-color: var(--badge-blue-bg) !important;
+  border: 1px solid var(--badge-blue-border) !important;
+  color: var(--badge-blue-text) !important;
+}
+
+span.text-green-400, span.text-emerald-400 {
+  background-color: var(--badge-green-bg) !important;
+  border: 1px solid var(--badge-green-border) !important;
+  color: var(--badge-green-text) !important;
+}
+
+span.text-orange-400 {
+  background-color: var(--badge-orange-bg) !important;
+  border: 1px solid var(--badge-orange-border) !important;
+  color: var(--badge-orange-text) !important;
+}
+
+span.text-rose-400 {
+  background-color: var(--badge-rose-bg) !important;
+  border: 1px solid var(--badge-rose-border) !important;
+  color: var(--badge-rose-text) !important;
+}
+
+/* 6. Inconsistent Activity Page Styles Formatting */
+select option {
+  background-color: var(--slate-900) !important;
+  color: var(--slate-100) !important;
+}
+
+/* Search bar styling alignment */
+input[placeholder*="Search"] {
+  border-radius: 12px !important;
+  border: 1px solid var(--slate-800) !important;
+  background-color: var(--slate-900) !important;
+  color: var(--slate-100) !important;
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Filters wrapper styling */
+div.grid-cols-4 select {
+  color: var(--slate-100) !important;
+  font-weight: 500;
+}
+
+/* Table Header Formatting */
+thead.bg-slate-800 {
+  background-color: var(--slate-950) !important;
+  border-bottom: 2px solid var(--slate-800) !important;
+}
+
+thead.bg-slate-800 th {
+  color: var(--slate-400) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Table row styling and hover */
+tr.border-t.border-slate-700 {
+  border-color: var(--slate-800) !important;
+}
+
+tr.border-t.border-slate-700:hover {
+  background-color: var(--slate-900) !important;
+}
+
+/* Style Expanded Detail Rows in Activity Stream */
+tbody tr.bg-slate-900 {
+  background-color: var(--slate-950) !important; /* uses page bg color to look inset */
+  border-left: 3px solid var(--cyan-500) !important; /* adds a nice border accent */
+  font-size: 0.75rem !important; /* reduces font size to text-xs */
+}
+
+tbody tr.bg-slate-900 td {
+  border-top: 1px dashed var(--slate-800) !important;
+  border-bottom: 1px dashed var(--slate-800) !important;
+}
+
+/* 7. Global Page Layout & Spacing Alignment (Ensures Profile/Metrics align with Dashboard/Activity) */
+html, body, #root {
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* Main Viewport Container */
+main {
+  height: 100vh !important;
+  background-color: var(--slate-950) !important;
+}
+
+/* Ensure direct page divs share identical spacing, eliminating duplicate scrollbars */
+main > div {
+  padding: 2rem !important; /* matches p-8 */
+  min-height: 100% !important;
+  box-sizing: border-box !important;
+  background-color: transparent !important; /* let main container handle bg color */
+}
+
+/* Format all page headers uniformly (Dashboard, Activity, Profile, Metrics) */
+main h1, 
+main > h1:first-child {
+  font-size: 2.25rem !important; /* text-4xl */
+  font-weight: 800 !important;   /* font-extrabold */
+  letter-spacing: -0.025em !important;
+  background: linear-gradient(to right, var(--slate-50), var(--slate-100), var(--slate-400)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  margin-top: 0px !important;
+  margin-bottom: 0.5rem !important;
+  display: inline-block;
+}
+
+/* Add default layout spacing for pages that only render raw elements (like Profile, Metrics fragments) */
+main > h1:first-child {
+  margin: 2rem 2rem 0.5rem 2rem !important;
+}
+
+main > h1:first-child + p,
+main > h1:first-child + div {
+  margin-left: 2rem !important;
+  margin-right: 2rem !important;
 }
