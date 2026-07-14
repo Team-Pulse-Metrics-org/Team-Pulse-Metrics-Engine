@@ -25,80 +25,72 @@ useEffect(() => {
 }, [search, developerFilter, typeFilter, repoFilter]);
 
 // Fetch activities from backend when component loads
-    useEffect(() => {
-  fetch("http://localhost:8080/api/v1/activities")
+useEffect(() => {
+  const token = localStorage.getItem("app_token");
+
+  fetch("http://localhost:8080/api/v1/activities",{
+ headers: {
+    Authorization: `Bearer ${token}`,
+  },
+})
+  
+    
     .then((res) => res.json())
     .then((data) => {
-      console.log("Backend data:",data)
+     console.log("Backend data:", data);
+    if (!Array.isArray(data)) {
+    console.error("Expected array but got:", data);
+    return;}
+
       const formattedActivities = data.map((activity: any) => {
+        const payload =
+          typeof activity.payload === "string"
+            ? JSON.parse(activity.payload)
+            : activity.payload;
 
-       // Convert payload string to JSON object if required
-      const payload =
-      typeof activity.payload === "string"
-      ? JSON.parse(activity.payload)
-      : activity.payload;
-    console.log(activity.type,payload);
-    console.log("Payload:", payload);
-    console.log("Developer field:", payload.author);
-    console.log("Developer field:", payload.developer);
-    console.log("Developer field:", payload.action_by);
-    console.log("Developer field:", payload.created_by);
+        return {
+          id: activity.id,
+          timestamp: activity.logged_at,
+          displayTime: new Date(activity.logged_at).toLocaleString(),
 
-  return {
-    id: activity.id,
-    timestamp: activity.logged_at,
-    displayTime: new Date(
-    activity.logged_at
-    ).toLocaleString(),
+          developer:
+            activity.developer_name ||
+            payload.developer ||
+            payload.author ||
+            payload.action_by ||
+            payload.created_by ||
+            payload.sender?.login ||
+            payload.pull_request?.user?.login ||
+            "Unknown",
 
-    // Extract developer name from different webhook payload formats
-    developer:
-      activity.developer_name ||
-      payload.developer ||
-      payload.author ||
-  payload.action_by ||
-  payload.created_by ||
-  payload.sender?.login ||
-  payload.pull_request?.user?.login ||
-  "Unknown",
+          type: activity.type || "Unknown",
 
-    type: activity.type || "Unknown",
+          repository: (
+            payload.repository?.name ||
+            payload.repository?.full_name ||
+            payload.repository ||
+            "Unknown"
+          ).split("/").pop(),
 
-    repository: (
-  payload.repository?.name ||
-  payload.repository?.full_name ||
-  payload.repository ||
-  "Unknown"
-).split("/").pop(),
+          message:
+            payload.message ||
+            payload.commits?.[0]?.message ||
+            payload.pull_request?.title ||
+            payload.title ||
+            "No message",
+        };
+      });
 
-    message:
-      payload.message ||
-      payload.commits?.[0]?.message ||
-      payload.pull_request?.title ||
-      payload.title ||
-      "No message",
-  
-  };
-});
-
-// Sort activities by timestamp (latest ,oldest first)
-const sortedActivities = formattedActivities.sort(
-  (a :any, b:any) =>
-    new Date(b.timestamp).getTime() -
-    new Date(a.timestamp).getTime()
-);
-
-setActivities(sortedActivities);
-console.log("Formatted:", sortedActivities);
-setActivities(sortedActivities);
-})
-.catch((err) =>
-  console.error(
-    "Failed to fetch activities:",
-    err
-  )
-);
+      setActivities(formattedActivities);
+    })
+    .catch((err) =>
+      console.error("Failed to fetch activities:", err)
+    );
 }, []);
+
+       
+
+
 
 //apply search and filter conditions
   const filteredActivities = activities.filter((activity) => {
