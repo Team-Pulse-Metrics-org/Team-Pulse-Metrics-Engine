@@ -51,8 +51,27 @@ function Dashboard() {
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/v1/dashboard")
+    const token = localStorage.getItem("app_token");
+
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    fetch("http://localhost:8080/api/v1/dashboard", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
       .then((res) => {
+        if (res.status === 401) {
+          localStorage.removeItem("app_token");
+          window.location.href = "/login";
+          throw new Error("Session expired. Please log in again.");
+        }
+
         if (!res.ok) {
           throw new Error("Failed to fetch dashboard data");
         }
@@ -74,7 +93,9 @@ function Dashboard() {
       <div className="flex h-full items-center justify-center bg-slate-950 text-white">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-          <p className="text-slate-400 animate-pulse font-medium">Loading Dashboard metrics...</p>
+          <p className="text-slate-400 animate-pulse font-medium">
+            Loading Dashboard metrics...
+          </p>
         </div>
       </div>
     );
@@ -85,8 +106,12 @@ function Dashboard() {
       <div className="flex h-full items-center justify-center bg-slate-950 text-white p-6">
         <div className="max-w-md text-center border border-rose-500/20 bg-rose-950/20 rounded-2xl p-8 backdrop-blur-md">
           <AlertCircle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-rose-400 mb-2">Error Loading Dashboard</h2>
-          <p className="text-slate-400 mb-6">{error || "No dashboard data available."}</p>
+          <h2 className="text-xl font-bold text-rose-400 mb-2">
+            Error Loading Dashboard
+          </h2>
+          <p className="text-slate-400 mb-6">
+            {error || "No dashboard data available."}
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-rose-900/30"
@@ -101,9 +126,9 @@ function Dashboard() {
   // Circular donut chart calculations
   const totalBreakdown =
     (data.activity_breakdown.git_commits || 0) +
-    (data.activity_breakdown.pull_requests_closed || 0) +
-    (data.activity_breakdown.tasks_resolved || 0) +
-    (data.activity_breakdown.active_blockers || 0) || 1;
+      (data.activity_breakdown.pull_requests_closed || 0) +
+      (data.activity_breakdown.tasks_resolved || 0) +
+      (data.activity_breakdown.active_blockers || 0) || 1;
 
   const breakdownCategories = [
     {
@@ -141,23 +166,38 @@ function Dashboard() {
   let accumulatedPercent = 0;
 
   // Commit trend calculations
-  const maxCommitsInTrend = Math.max(...data.commit_trend.map((t) => t.commits), 1);
+  const maxCommitsInTrend = Math.max(
+    ...data.commit_trend.map((t) => t.commits),
+    1,
+  );
 
   const chartWidth = 600;
   const chartHeight = 240;
   const paddingX = 40;
   const paddingY = 30;
 
-  const points = data ? data.commit_trend.map((item, i) => {
-    const x = paddingX + i * ((chartWidth - 2 * paddingX) / Math.max(data.commit_trend.length - 1, 1));
-    const y = (chartHeight - paddingY) - (item.commits / maxCommitsInTrend) * (chartHeight - 2 * paddingY);
-    return { x, y, week: item.week, commits: item.commits };
-  }) : [];
+  const points = data
+    ? data.commit_trend.map((item, i) => {
+        const x =
+          paddingX +
+          i *
+            ((chartWidth - 2 * paddingX) /
+              Math.max(data.commit_trend.length - 1, 1));
+        const y =
+          chartHeight -
+          paddingY -
+          (item.commits / maxCommitsInTrend) * (chartHeight - 2 * paddingY);
+        return { x, y, week: item.week, commits: item.commits };
+      })
+    : [];
 
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaPath = points.length > 0 
-    ? `${linePath} L ${points[points.length - 1].x} ${chartHeight - paddingY} L ${points[0].x} ${chartHeight - paddingY} Z` 
-    : "";
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
+  const areaPath =
+    points.length > 0
+      ? `${linePath} L ${points[points.length - 1].x} ${chartHeight - paddingY} L ${points[0].x} ${chartHeight - paddingY} Z`
+      : "";
 
   return (
     <div className="bg-slate-950 min-h-screen p-8 text-white">
@@ -255,7 +295,9 @@ function Dashboard() {
                 <Calendar className="h-5 w-5 text-indigo-400" />
                 <h2 className="text-lg font-semibold">Commit Trend</h2>
               </div>
-              <span className="text-xs text-slate-500">Weekly Commits Grouping</span>
+              <span className="text-xs text-slate-500">
+                Weekly Commits Grouping
+              </span>
             </div>
 
             {/* Custom SVG Line Chart */}
@@ -266,18 +308,30 @@ function Dashboard() {
                 </div>
               ) : (
                 <>
-                  <svg className="w-full h-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
+                  <svg
+                    className="w-full h-full"
+                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                    preserveAspectRatio="none"
+                  >
                     <defs>
                       <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#3b82f6" />
                         <stop offset="100%" stopColor="#8b5cf6" />
                       </linearGradient>
                       <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                        <stop
+                          offset="0%"
+                          stopColor="#3b82f6"
+                          stopOpacity="0.3"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#3b82f6"
+                          stopOpacity="0.0"
+                        />
                       </linearGradient>
                     </defs>
-                    
+
                     {/* Grid lines (horizontal) */}
                     {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
                       const y = paddingY + ratio * (chartHeight - 2 * paddingY);
@@ -325,7 +379,7 @@ function Dashboard() {
                             strokeDasharray="3 3"
                           />
                         )}
-                        
+
                         {/* Point circle */}
                         <circle
                           cx={p.x}
@@ -372,7 +426,10 @@ function Dashboard() {
                   {/* X-Axis labels at the bottom */}
                   <div className="flex justify-between px-8 mt-2">
                     {points.map((p, idx) => (
-                      <span key={idx} className="text-[10px] text-slate-500 font-semibold tracking-wider">
+                      <span
+                        key={idx}
+                        className="text-[10px] text-slate-500 font-semibold tracking-wider"
+                      >
                         {p.week}
                       </span>
                     ))}
@@ -406,7 +463,10 @@ function Dashboard() {
                   {breakdownCategories.map((cat) => {
                     const percent = (cat.value / totalBreakdown) * 100;
                     const strokeDasharray = `${(percent / 100) * donutCircumference} ${donutCircumference}`;
-                    const strokeDashoffset = -((accumulatedPercent / 100) * donutCircumference);
+                    const strokeDashoffset = -(
+                      (accumulatedPercent / 100) *
+                      donutCircumference
+                    );
                     accumulatedPercent += percent;
                     return (
                       <circle
@@ -429,7 +489,9 @@ function Dashboard() {
                   <span className="text-[10px] text-slate-500 uppercase tracking-widest">
                     Total Events
                   </span>
-                  <span className="text-2xl font-bold">{totalBreakdown.toLocaleString()}</span>
+                  <span className="text-2xl font-bold">
+                    {totalBreakdown.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -439,11 +501,16 @@ function Dashboard() {
           <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-800/60">
             {breakdownCategories.map((cat) => (
               <div key={cat.name} className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full bg-gradient-to-r ${cat.color}`} />
+                <span
+                  className={`h-2.5 w-2.5 rounded-full bg-gradient-to-r ${cat.color}`}
+                />
                 <div className="flex flex-col">
-                  <span className="text-xs text-slate-400 font-medium">{cat.name}</span>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {cat.name}
+                  </span>
                   <span className="text-[11px] text-slate-500 font-bold">
-                    {cat.value} ({Math.round((cat.value / totalBreakdown) * 100)}%)
+                    {cat.value} (
+                    {Math.round((cat.value / totalBreakdown) * 100)}%)
                   </span>
                 </div>
               </div>
@@ -481,7 +548,9 @@ function Dashboard() {
                         #{index + 1}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm text-white">{contrib.name}</p>
+                        <p className="font-semibold text-sm text-white">
+                          {contrib.name}
+                        </p>
                         <p className="text-[11px] text-slate-500">Developer</p>
                       </div>
                     </div>
@@ -524,13 +593,19 @@ function Dashboard() {
               <tbody className="divide-y divide-slate-800/50">
                 {data.recent_activity.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-slate-500 text-sm text-center">
+                    <td
+                      colSpan={4}
+                      className="py-8 text-slate-500 text-sm text-center"
+                    >
                       No recent activities recorded
                     </td>
                   </tr>
                 ) : (
                   data.recent_activity.map((activity, idx) => (
-                    <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
+                    <tr
+                      key={idx}
+                      className="hover:bg-slate-900/40 transition-colors"
+                    >
                       <td className="py-3.5 pr-4">
                         <span className="text-sm font-semibold text-white block">
                           {activity.developer}
@@ -545,23 +620,23 @@ function Dashboard() {
                             activity.type === "git_commit"
                               ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
                               : activity.type === "pull_request_closed"
-                              ? "bg-green-600/20 text-green-400 border border-green-500/20"
-                              : activity.type === "open_issue"
-                              ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
-                              : activity.type === "task_completed"
-                              ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
-                              : "bg-slate-700"
+                                ? "bg-green-600/20 text-green-400 border border-green-500/20"
+                                : activity.type === "open_issue"
+                                  ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
+                                  : activity.type === "task_completed"
+                                    ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
+                                    : "bg-slate-700"
                           }`}
                         >
                           {activity.type === "git_commit"
                             ? "Commit"
                             : activity.type === "pull_request_closed"
-                            ? "PR Closed"
-                            : activity.type === "open_issue"
-                            ? "Issue Opened"
-                            : activity.type === "task_completed"
-                            ? "Issue Closed"
-                            : activity.type}
+                              ? "PR Closed"
+                              : activity.type === "open_issue"
+                                ? "Issue Opened"
+                                : activity.type === "task_completed"
+                                  ? "Issue Closed"
+                                  : activity.type}
                         </span>
                       </td>
                       <td className="py-3.5 pr-4 text-xs font-semibold text-slate-400">
