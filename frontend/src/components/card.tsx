@@ -7,7 +7,7 @@ type ClassProps = {
 
 function Card({ className = "", children }: ClassProps) {
   return (
-    <div className={`border bg-slate-900 rounded-2xl ${className}`}>
+    <div className={`border border-slate-800 bg-slate-900 rounded-2xl ${className}`}>
       {children}
     </div>
   );
