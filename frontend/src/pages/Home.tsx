@@ -17,23 +17,31 @@ export default function Home() {
 
         {/* Navigation Links */}
         <div className="flex items-center gap-8 text-lg">
-          <button
+         <button
   onClick={() => {
     setShowFeatures(true);
     setShowAbout(false);
+
+    setTimeout(() => {
+      document.getElementById("features")?.scrollIntoView({
+        behavior: "smooth",
+      });
+    }, 100);
   }}
-  className="hover:text-cyan-400 transition duration-200"
 >
-
   Features
-</button>
-
+</button> 
 <button
   onClick={() => {
     setShowAbout(true);
     setShowFeatures(false);
+
+    setTimeout(() => {
+      document.getElementById("about")?.scrollIntoView({
+        behavior: "smooth",
+      });
+    }, 100);
   }}
-  className="hover:text-cyan-400 transition duration-200"
 >
   About
 </button>
@@ -69,7 +77,7 @@ export default function Home() {
 </section>
 {/*features*/}
 {showFeatures && (
-<section className="mt-40 px-10 py-20">
+<section id="features" className="mt-40 px-10 py-20">
  
   <h2 className="text-5xl font-bold text-center mb-16">
     Features
@@ -149,7 +157,7 @@ transition-all duration-300
 </section>
 )}
 {showAbout && (
-  <section className="py-24 px-10 text-center">
+  <section id="about" className="py-24 px-10 text-center">
   <h2 className="text-5xl font-bold mb-8">
     About Team Pulse
   </h2>
