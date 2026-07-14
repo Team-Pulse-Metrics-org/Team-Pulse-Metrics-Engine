@@ -43,6 +43,9 @@ func GenerateJWTToken(userID string, role string) (string, error) {
 
 func ValidateToken(tokenString string) (*Claims, error) {
 	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, errors.New("Error: JWT secret is not configured")
+	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

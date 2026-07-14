@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
@@ -26,17 +27,31 @@ func main() {
 		port = "8080"
 	}
 
+	config := cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}
+
 	database.ConnectDB()
 
 	r := gin.New()
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.Recovery())
-	r.Use(cors.Default())
+	r.Use(cors.New(config))
 
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
 	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
-	r.GET("/api/v1/activities", handlers.GetActivities)
-	r.GET("/api/v1/dashboard", handlers.GetDashboard)
+
+	protected := r.Group("/api/v1")
+	protected.Use(middleware.AuthRequired())
+	{
+		protected.GET("/activities", handlers.GetActivities)
+		protected.GET("/dashboard", handlers.GetDashboard)
+	}
 
 	l.Info().
 		Str("port", port).Msgf("Starting Team Pulse Metrics Server on port '%s'", port)
