@@ -1,12 +1,13 @@
 import React, { useEffect,useState } from "react";
 
-
+//activity page component
 export default function Activity() {
   
 const [activities, setActivities] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  //filter states
   const [developerFilter, setDeveloperFilter] =
     useState("All Developers");
   const [typeFilter, setTypeFilter] =
@@ -17,27 +18,32 @@ const [activities, setActivities] = useState<any[]>([]);
 const [currentPage, setCurrentPage] = useState(1);
 const [sortOrder, setSortOrder] = useState("latest");
 const eventsPerPage = 10;
+
+// Reset to first page whenever filters or search change
 useEffect(() => {
   setCurrentPage(1);
 }, [search, developerFilter, typeFilter, repoFilter]);
 
+// Fetch activities from backend when component loads
     useEffect(() => {
   fetch("http://localhost:8080/api/v1/activities")
     .then((res) => res.json())
     .then((data) => {
       console.log("Backend data:",data)
       const formattedActivities = data.map((activity: any) => {
-       
-  const payload =
-    typeof activity.payload === "string"
+
+       // Convert payload string to JSON object if required
+      const payload =
+      typeof activity.payload === "string"
       ? JSON.parse(activity.payload)
       : activity.payload;
 console.log(activity.type,payload);
- console.log("Payload:", payload);
+console.log("Payload:", payload);
 console.log("Developer field:", payload.author);
 console.log("Developer field:", payload.developer);
 console.log("Developer field:", payload.action_by);
 console.log("Developer field:", payload.created_by);
+
   return {
     id: activity.id,
     timestamp: activity.logged_at,
@@ -45,6 +51,7 @@ console.log("Developer field:", payload.created_by);
     activity.logged_at
     ).toLocaleString(),
 
+    // Extract developer name from different webhook payload formats
     developer:
       activity.developer_name ||
       payload.developer ||
@@ -57,10 +64,12 @@ console.log("Developer field:", payload.created_by);
 
     type: activity.type || "Unknown",
 
-    repository:
-      payload.repository?.name ||
-      payload.repository ||
-      "Unknown",
+    repository: (
+  payload.repository?.name ||
+  payload.repository?.full_name ||
+  payload.repository ||
+  "Unknown"
+).split("/").pop(),
 
     message:
       payload.message ||
@@ -71,7 +80,7 @@ console.log("Developer field:", payload.created_by);
   
   };
 });
-
+// Sort activities by timestamp (latest ,oldest first)
 const sortedActivities = formattedActivities.sort(
   (a :any, b:any) =>
     new Date(b.timestamp).getTime() -
@@ -89,6 +98,7 @@ setActivities(sortedActivities);
   )
 );
 }, []);
+//apply search and filter conditions
   const filteredActivities = activities.filter((activity) => {
   const developer = (activity.developer || "").toLowerCase();
   const message = (activity.message || "").toLowerCase();
@@ -133,8 +143,10 @@ const sortedFilteredActivities = [...filteredActivities].sort(
     );
   }
 );
-  const totalEvents = filteredActivities.length;
-  const indexOfLastEvent = currentPage * eventsPerPage;
+
+// Calculate pagination values
+const totalEvents = filteredActivities.length;
+const indexOfLastEvent = currentPage * eventsPerPage;
 const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
 
 const currentActivities = sortedFilteredActivities.slice(
@@ -145,6 +157,33 @@ const currentActivities = sortedFilteredActivities.slice(
 const totalPages = Math.ceil(
   filteredActivities.length / eventsPerPage
 );
+const getVisiblePages = () => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  // Beginning pages
+  if (currentPage <= 3) {
+    return [1, 2, 3, "...", totalPages - 1, totalPages];
+  }
+
+  // Ending pages
+  if (currentPage >= totalPages - 2) {
+    return [1, 2, "...", totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  // Middle pages
+  return [
+    1,
+    "...",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "...",
+    totalPages,
+  ];
+};
+
 
   return (
     <div className="p-8 text-white">
@@ -153,9 +192,7 @@ const totalPages = Math.ceil(
       <p className="text-slate-400 mt-1">
         All engineering events across repositories
       </p>
-     <p className="text-slate-400">
-    Total Events: {totalEvents}
-    </p>
+    
       
 
 <p className="text-slate-400">
@@ -253,7 +290,7 @@ const totalPages = Math.ceil(
          <select
   value={repoFilter}
   onChange={(e) => setRepoFilter(e.target.value)}
-  className="bg-transparent outline-none"
+  className="bg-transparent outline-none flex-1 min-w-0"
 >
   <option value="All Repositories" className="text-black">
     All Repositories
@@ -431,20 +468,26 @@ const totalPages = Math.ceil(
   </button>
 
   {/* Page Numbers */}
-  {Array.from({ length: totalPages }, (_, index) => (
+{/* Page Numbers */}
+{getVisiblePages().map((page, index) =>
+  page === "..." ? (
+    <span key={`dots-${index}`} className="px-2 text-gray-400">
+      ...
+    </span>
+  ) : (
     <button
-      key={index}
-      onClick={() => setCurrentPage(index + 1)}
+      key={page}
+      onClick={() => setCurrentPage(Number(page))}
       className={`px-3 py-2 rounded ${
-        currentPage === index + 1
+        currentPage === page
           ? "bg-white text-black"
           : "bg-slate-700 hover:bg-slate-600"
       }`}
     >
-      {index + 1}
+      {page}
     </button>
-  ))}
-
+  )
+)}
   {/* Next Arrow */}
   <button
     disabled={currentPage === totalPages}
