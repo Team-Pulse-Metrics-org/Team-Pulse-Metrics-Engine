@@ -41,7 +41,7 @@ export default function Activity() {
         if (!res.ok) {
           throw new Error("failed to fetch activity records");
         }
-        return res.json();
+        res.json();
       })
       .then((data) => {
         console.log("Backend data:", data);
