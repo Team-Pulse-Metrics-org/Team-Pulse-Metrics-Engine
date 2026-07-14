@@ -139,7 +139,7 @@ export default function Activity() {
   const totalPages = Math.ceil(filteredActivities.length / eventsPerPage);
 
   return (
-    <div className="p-8 text-white">
+    <div className="p-8 text-slate-100">
       <h1 className="text-4xl font-bold">Activity</h1>
 
       <p className="text-slate-400 mt-1">
@@ -268,18 +268,28 @@ export default function Activity() {
           </span>
         </p>
       </div>
+<div className="flex justify-between items-center mt-5 mb-2">
+  <h2 className="text-xl font-semibold">
+    Activity Events
+  </h2>
+
+  <p className="text-slate-400">
+    Total Events:{" "}
+    <span className="text-slate-100 font-bold">
+      {filteredActivities.length}
+    </span>
+  </p>
+</div>
       {/* Table */}
       <div className="mt-6 rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-800 text-slate-300">
               <tr>
-                <th className="p-4">Timestamp</th>
                 <th className="p-4">Developer</th>
-                <th className="p-4">Type</th>
+                <th className="p-4">Activity</th>
                 <th className="p-4">Repository</th>
-                <th className="p-4">Message</th>
-
+                <th className="p-4">Details</th>
                 <th className="p-4"></th>
               </tr>
             </thead>
@@ -288,26 +298,31 @@ export default function Activity() {
               {currentActivities.map((activity) => (
                 <React.Fragment key={activity.id}>
                   <tr className="border-t border-slate-700 hover:bg-slate-800">
-                    <td className="p-4">{activity.displayTime}</td>
-
-                    <td className="p-4">{activity.developer}</td>
+                    <td className="p-4">
+                      <span className="text-sm font-semibold text-slate-100 block">
+                        {activity.developer}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        {activity.displayTime}
+                      </span>
+                    </td>
 
                     <td className="p-4">
                       <span
-                        className={`px-2 py-1 rounded-md text-sm text-white ${
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${
                           activity.type === "git_commit"
-                            ? "bg-blue-600"
+                            ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
                             : activity.type === "pull_request_closed"
-                              ? "bg-green-600"
-                              : activity.type === "open_issue"
-                                ? "bg-orange-600"
-                                : activity.type === "task_completed"
-                                  ? "bg-rose-600"
-                                  : "bg-red-600"
+                            ? "bg-green-600/20 text-green-400 border border-green-500/20"
+                            : activity.type === "open_issue"
+                            ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
+                            : activity.type === "task_completed"
+                            ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
+                            : "bg-slate-700"
                         }`}
                       >
                         {activity.type === "git_commit"
-                          ? "Git Commit"
+                          ? "Commit"
                           : activity.type === "pull_request_closed"
                             ? "PR Closed"
                             : activity.type === "open_issue"
@@ -318,21 +333,22 @@ export default function Activity() {
                       </span>
                     </td>
 
-                    <td className="p-4">{activity.repository}</td>
-
-                    <td className="p-4">
-                      {activity.message.length > 25
-                        ? activity.message.substring(0, 25) + "..."
-                        : activity.message}
+                    <td className="p-4 text-xs font-semibold text-slate-400">
+                      {activity.repository}
                     </td>
 
-                    <td className="p-4">
+                    <td className="p-4 text-xs text-slate-300 max-w-[320px] truncate">
+                      {activity.message}
+                    </td>
+
+                    <td className="p-4 text-right">
                       <button
                         onClick={() =>
                           setExpandedId(
                             expandedId === activity.id ? null : activity.id,
                           )
                         }
+                        className="text-slate-500 hover:text-slate-300 transition-colors font-semibold"
                       >
                         {expandedId === activity.id ? "▲" : "▼"}
                       </button>
@@ -341,7 +357,10 @@ export default function Activity() {
 
                   {expandedId === activity.id && (
                     <tr className="bg-slate-900">
-                      <td colSpan={7} className="p-4">
+                      <td
+                        colSpan={5}
+                        className="p-4"
+                      >
                         <div className="flex justify-between items-center gap-8">
                           <div>
                             <span className="font-bold">Full Message:</span>{" "}
