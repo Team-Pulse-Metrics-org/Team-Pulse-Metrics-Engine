@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { LuSun, LuMoon } from "react-icons/lu";
 
 export default function Home() {
+  const [showAbout, setShowAbout] = useState(false);
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("app_theme") || "dark";
@@ -143,28 +144,43 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-slate-900 p-8 rounded-2xl border hover:-translate-y-3 hover:border-cyan-400 transition-all duration-300">
-            <div className="text-5xl mb-4">✅</div>
-            <h3 className="text-2xl font-semibold text-slate-50 mb-3">
-              Delivery Speed
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Measure sprint deliverables and execution scores across developers.
-            </p>
-          </div>
-       
-          <div className="bg-slate-900 p-8 rounded-2xl border hover:-translate-y-3 hover:border-cyan-400 transition-all duration-300">
-            <div className="text-5xl mb-4">🚨</div>
-            <h3 className="text-2xl font-semibold text-slate-50 mb-3">
-              Blocker Audits
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Instantly flags active blockers, dependency freezes, and cycle bottlenecks.
-            </p>
-          </div>
-        </div>
-      </section>
-
+    <div className="bg-slate-900/70 backdrop-blur-lg p-8
+rounded-2xl
+border border-slate-700
+shadow-2xl
+hover:-translate-y-3
+hover:shadow-cyan-500/20
+hover:border-cyan-400
+transition-all duration-300">
+      <div className="text-5xl mb-4">✅</div>
+      <h3 className="text-2xl font-semibold mb-3">
+        Task Metrics
+      </h3>
+      <p className="text-slate-400">
+        Measure completed tasks and delivery velocity.
+      </p>
+    </div>
+ 
+    <div className="
+bg-slate-900/70 backdrop-blur-lg p-8
+rounded-2xl
+border border-slate-700
+shadow-2xl
+hover:-translate-y-3
+hover:shadow-cyan-500/20
+hover:border-cyan-400
+transition-all duration-300
+">
+      <div className="text-5xl mb-4">🚨</div>
+      <h3 className="text-2xl font-semibold mb-3">
+        Blocker Detection
+      </h3>
+      <p className="text-slate-400">
+        Identify bottlenecks and active engineering blockers.
+      </p>
+    </div>
+  </div>
+</section>
       {/* How It Works Section */}
       <section id="how-it-works" className="py-24 border-t border-slate-800 bg-slate-950/40">
         <div className="max-w-6xl mx-auto px-6">
