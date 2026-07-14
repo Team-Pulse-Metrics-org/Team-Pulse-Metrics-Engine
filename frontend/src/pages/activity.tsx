@@ -1,17 +1,12 @@
-<<<<<<< HEAD
 import React, { useEffect,useState } from "react";
 
 //activity page component
-=======
-import React, { useEffect, useState } from "react";
-
->>>>>>> origin/main
 export default function Activity() {
-  const [activities, setActivities] = useState<any[]>([]);
+  
+const [activities, setActivities] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-<<<<<<< HEAD
   //filter states
   const [developerFilter, setDeveloperFilter] =
     useState("All Developers");
@@ -42,12 +37,12 @@ useEffect(() => {
       typeof activity.payload === "string"
       ? JSON.parse(activity.payload)
       : activity.payload;
-console.log(activity.type,payload);
-console.log("Payload:", payload);
-console.log("Developer field:", payload.author);
-console.log("Developer field:", payload.developer);
-console.log("Developer field:", payload.action_by);
-console.log("Developer field:", payload.created_by);
+    console.log(activity.type,payload);
+    console.log("Payload:", payload);
+    console.log("Developer field:", payload.author);
+    console.log("Developer field:", payload.developer);
+    console.log("Developer field:", payload.action_by);
+    console.log("Developer field:", payload.created_by);
 
   return {
     id: activity.id,
@@ -85,6 +80,7 @@ console.log("Developer field:", payload.created_by);
   
   };
 });
+
 // Sort activities by timestamp (latest ,oldest first)
 const sortedActivities = formattedActivities.sort(
   (a :any, b:any) =>
@@ -103,6 +99,7 @@ setActivities(sortedActivities);
   )
 );
 }, []);
+
 //apply search and filter conditions
   const filteredActivities = activities.filter((activity) => {
   const developer = (activity.developer || "").toLowerCase();
@@ -150,143 +147,15 @@ const sortedFilteredActivities = [...filteredActivities].sort(
 );
 
 // Calculate pagination values
-const totalEvents = filteredActivities.length;
+//const totalEvents = filteredActivities.length;
 const indexOfLastEvent = currentPage * eventsPerPage;
 const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
-=======
-  const [developerFilter, setDeveloperFilter] = useState("All Developers");
-  const [typeFilter, setTypeFilter] = useState("All Types");
-  const [repoFilter, setRepoFilter] = useState("All Repositories");
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortOrder, setSortOrder] = useState("latest");
-  const eventsPerPage = 10;
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, developerFilter, typeFilter, repoFilter]);
+const currentActivities = sortedFilteredActivities.slice(
+  indexOfFirstEvent,
+  indexOfLastEvent
+);
 
-  useEffect(() => {
-    const token = localStorage.getItem("app_token");
-
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
-
-    fetch("http://localhost:8080/api/v1/activities", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          localStorage.removeItem("app_token");
-          window.location.href = "/login";
-          throw new Error("Session expired. Please log in again.");
-        }
-
-        if (!res.ok) {
-          throw new Error("failed to fetch activity records");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        console.log("Backend data:", data);
-        const formattedActivities = data.map((activity: any) => {
-          const payload =
-            typeof activity.payload === "string"
-              ? JSON.parse(activity.payload)
-              : activity.payload;
-          console.log(activity.type, payload);
-          console.log("Payload:", payload);
-          console.log("Developer field:", payload.author);
-          console.log("Developer field:", payload.developer);
-          console.log("Developer field:", payload.action_by);
-          console.log("Developer field:", payload.created_by);
-          return {
-            id: activity.id,
-            timestamp: activity.logged_at,
-            displayTime: new Date(activity.logged_at).toLocaleString(),
-
-            developer:
-              activity.developer_name ||
-              payload.developer ||
-              payload.author ||
-              payload.action_by ||
-              payload.created_by ||
-              payload.sender?.login ||
-              payload.pull_request?.user?.login ||
-              "Unknown",
-
-            type: activity.type || "Unknown",
-
-            repository:
-              payload.repository?.name || payload.repository || "Unknown",
-
-            message:
-              payload.message ||
-              payload.commits?.[0]?.message ||
-              payload.pull_request?.title ||
-              payload.title ||
-              "No message",
-          };
-        });
-
-        const sortedActivities = formattedActivities.sort(
-          (a: any, b: any) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        );
-
-        setActivities(sortedActivities);
-        console.log("Formatted:", sortedActivities);
-        setActivities(sortedActivities);
-      })
-      .catch((err) => console.error("Failed to fetch activities:", err));
-  }, []);
-  const filteredActivities = activities.filter((activity) => {
-    const developer = (activity.developer || "").toLowerCase();
-    const message = (activity.message || "").toLowerCase();
-    const searchText = search.toLowerCase();
-
-    const matchesSearch =
-      developer.includes(searchText) || message.includes(searchText);
-
-    const matchesDeveloper =
-      developerFilter === "All Developers" ||
-      activity.developer === developerFilter;
-
-    const matchesType =
-      typeFilter === "All Types" || activity.type === typeFilter;
-
-    const matchesRepo =
-      repoFilter === "All Repositories" || activity.repository === repoFilter;
-
-    return matchesSearch && matchesDeveloper && matchesType && matchesRepo;
-  });
-  const sortedFilteredActivities = [...filteredActivities].sort(
-    (a: any, b: any) => {
-      if (sortOrder === "latest") {
-        return (
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      }
-
-      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-    },
-  );
-  const totalEvents = filteredActivities.length;
-  const indexOfLastEvent = currentPage * eventsPerPage;
-  const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
->>>>>>> origin/main
-
-  const currentActivities = sortedFilteredActivities.slice(
-    indexOfFirstEvent,
-    indexOfLastEvent,
-  );
-
-<<<<<<< HEAD
 const totalPages = Math.ceil(
   filteredActivities.length / eventsPerPage
 );
@@ -317,9 +186,6 @@ const getVisiblePages = () => {
   ];
 };
 
-=======
-  const totalPages = Math.ceil(filteredActivities.length / eventsPerPage);
->>>>>>> origin/main
 
   return (
     <div className="p-8 text-white">
@@ -328,18 +194,18 @@ const getVisiblePages = () => {
       <p className="text-slate-400 mt-1">
         All engineering events across repositories
       </p>
-<<<<<<< HEAD
     
       
-=======
-      <p className="text-slate-400">Total Events: {totalEvents}</p>
->>>>>>> origin/main
 
-      <p className="text-slate-400">
-        Showing {(currentPage - 1) * eventsPerPage + 1} -
-        {Math.min(currentPage * eventsPerPage, filteredActivities.length)} of{" "}
-        {filteredActivities.length} events (Page {currentPage} of {totalPages})
-      </p>
+<p className="text-slate-400">
+  Showing {(currentPage - 1) * eventsPerPage + 1} -
+  {Math.min(
+    currentPage * eventsPerPage,
+    filteredActivities.length
+  )}{" "}
+  of {filteredActivities.length} events
+  (Page {currentPage} of {totalPages})
+</p>
 
       {/* Search */}
       <input
@@ -354,64 +220,75 @@ const getVisiblePages = () => {
       <div className="grid grid-cols-4 gap-3 mt-4">
         {/* Developer */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
-          <span className="text-slate-400">Developer:</span>
+          <span className="text-slate-400">
+            Developer:
+          </span>
 
           <select
             value={developerFilter}
-            onChange={(e) => setDeveloperFilter(e.target.value)}
+            onChange={(e) =>
+              setDeveloperFilter(e.target.value)
+            }
             className="bg-transparent outline-none"
           >
-            <option value="All Developers" className="text-black">
-              All Developers
-            </option>
+             <option value="All Developers" className="text-black">
+    All Developers
+  </option>
 
-            {[...new Set(activities.map((a) => a.developer))].map(
-              (developer) => (
-                <option
-                  key={developer}
-                  value={developer}
-                  className="text-black"
-                >
-                  {developer}
-                </option>
-              ),
-            )}
+            {[...new Set(
+              activities.map((a) => a.developer)
+            )].map((developer) => (
+              <option
+                key={developer}
+                value={developer}
+                className="text-black"
+              >
+                {developer}
+              </option>
+            ))}
           </select>
         </div>
 
         {/* Type */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
-          <span className="text-slate-400">Activity Type:</span>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="bg-transparent outline-none"
-          >
-            <option value="All Types" className="text-black">
-              All Types
-            </option>
+          <span className="text-slate-400">
+            Activity Type:
+          </span>
+<select
+  value={typeFilter}
+  onChange={(e) => setTypeFilter(e.target.value)}
+  className="bg-transparent outline-none"
+>
+  <option value="All Types" className="text-black">
+    All Types
+  </option>
 
-            {[...new Set(activities.map((a) => a.type))].map((type) => {
-              let displayType = type;
-              if (type === "git_commit") displayType = "Git Commit";
-              else if (type === "pull_request_closed")
-                displayType = "PR Closed";
-              else if (type === "open_issue") displayType = "Issue Opened";
-              else if (type === "task_completed") displayType = "Issue Closed";
-              return (
-                <option key={type} value={type} className="text-black">
-                  {displayType}
-                </option>
-              );
-            })}
-          </select>
+  {[...new Set(activities.map((a) => a.type))].map((type) => {
+    let displayType = type;
+    if (type === "git_commit") displayType = "Git Commit";
+    else if (type === "pull_request_closed") displayType = "PR Closed";
+    else if (type === "open_issue") displayType = "Issue Opened";
+    else if (type === "task_completed") displayType = "Issue Closed";
+    return (
+      <option
+        key={type}
+        value={type}
+        className="text-black"
+      >
+        {displayType}
+      </option>
+    );
+  })}
+</select>
+         
         </div>
 
         {/* Repository */}
         <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
-          <span className="text-slate-300">Repository:</span>
+          <span className="text-slate-300">
+            Repository:
+          </span>
 
-<<<<<<< HEAD
          <select
   value={repoFilter}
   onChange={(e) => setRepoFilter(e.target.value)}
@@ -420,53 +297,51 @@ const getVisiblePages = () => {
   <option value="All Repositories" className="text-black">
     All Repositories
   </option>
-=======
-          <select
-            value={repoFilter}
-            onChange={(e) => setRepoFilter(e.target.value)}
-            className="bg-transparent outline-none"
-          >
-            <option value="All Repositories" className="text-black">
-              All Repositories
-            </option>
->>>>>>> origin/main
 
-            {[...new Set(activities.map((a) => a.repository))].map((repo) => (
-              <option key={repo} value={repo} className="text-black">
-                {repo}
-              </option>
-            ))}
-          </select>
+  {[...new Set(activities.map((a) => a.repository))].map((repo) => (
+    <option
+      key={repo}
+      value={repo}
+      className="text-black"
+    >
+      {repo}
+    </option>
+  ))}
+</select>
         </div>
         {/* Sort */}
-        <div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
-          <span className="text-slate-400">Sort:</span>
+<div className="flex items-center gap-2 border border-slate-700 rounded-full px-4 py-2 bg-slate-900">
+  <span className="text-slate-400">
+    Sort:
+  </span>
 
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="bg-transparent outline-none"
-          >
-            <option value="latest" className="text-black">
-              Latest First
-            </option>
+  <select
+    value={sortOrder}
+    onChange={(e) => setSortOrder(e.target.value)}
+    className="bg-transparent outline-none"
+  >
+    <option value="latest" className="text-black">
+      Latest First
+    </option>
 
-            <option value="oldest" className="text-black">
-              Oldest First
-            </option>
-          </select>
-        </div>
+    <option value="oldest" className="text-black">
+      Oldest First
+    </option>
+  </select>
+</div>
       </div>
-      <div className="flex justify-between items-center mt-5 mb-2">
-        <h2 className="text-xl font-semibold">Activity Events</h2>
+<div className="flex justify-between items-center mt-5 mb-2">
+  <h2 className="text-xl font-semibold">
+    Activity Events
+  </h2>
 
-        <p className="text-slate-400">
-          Total Events:{" "}
-          <span className="text-white font-bold">
-            {filteredActivities.length}
-          </span>
-        </p>
-      </div>
+  <p className="text-slate-400">
+    Total Events:{" "}
+    <span className="text-white font-bold">
+      {filteredActivities.length}
+    </span>
+  </p>
+</div>
       {/* Table */}
       <div className="mt-6 rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -478,7 +353,7 @@ const getVisiblePages = () => {
                 <th className="p-4">Type</th>
                 <th className="p-4">Repository</th>
                 <th className="p-4">Message</th>
-
+                
                 <th className="p-4"></th>
               </tr>
             </thead>
@@ -487,9 +362,13 @@ const getVisiblePages = () => {
               {currentActivities.map((activity) => (
                 <React.Fragment key={activity.id}>
                   <tr className="border-t border-slate-700 hover:bg-slate-800">
-                    <td className="p-4">{activity.displayTime}</td>
+                    <td className="p-4">
+                      {activity.displayTime}
+                    </td>
 
-                    <td className="p-4">{activity.developer}</td>
+                    <td className="p-4">
+                      {activity.developer}
+                    </td>
 
                     <td className="p-4">
                       <span
@@ -497,31 +376,36 @@ const getVisiblePages = () => {
                           activity.type === "git_commit"
                             ? "bg-blue-600"
                             : activity.type === "pull_request_closed"
-                              ? "bg-green-600"
-                              : activity.type === "open_issue"
-                                ? "bg-orange-600"
-                                : activity.type === "task_completed"
-                                  ? "bg-rose-600"
-                                  : "bg-red-600"
+                            ? "bg-green-600"
+                            : activity.type === "open_issue"
+                            ? "bg-orange-600"
+                            : activity.type === "task_completed"
+                            ? "bg-rose-600"
+                            : "bg-red-600"
                         }`}
                       >
                         {activity.type === "git_commit"
                           ? "Git Commit"
                           : activity.type === "pull_request_closed"
-                            ? "PR Closed"
-                            : activity.type === "open_issue"
-                              ? "Issue Opened"
-                              : activity.type === "task_completed"
-                                ? "Issue Closed"
-                                : activity.type}
+                          ? "PR Closed"
+                          : activity.type === "open_issue"
+                          ? "Issue Opened"
+                          : activity.type === "task_completed"
+                          ? "Issue Closed"
+                          : activity.type}
                       </span>
                     </td>
 
-                    <td className="p-4">{activity.repository}</td>
+                    <td className="p-4">
+                      {activity.repository}
+                    </td>
 
                     <td className="p-4">
                       {activity.message.length > 25
-                        ? activity.message.substring(0, 25) + "..."
+                        ? activity.message.substring(
+                            0,
+                            25
+                          ) + "..."
                         : activity.message}
                     </td>
 
@@ -529,28 +413,42 @@ const getVisiblePages = () => {
                       <button
                         onClick={() =>
                           setExpandedId(
-                            expandedId === activity.id ? null : activity.id,
+                            expandedId === activity.id
+                              ? null
+                              : activity.id
                           )
                         }
                       >
-                        {expandedId === activity.id ? "▲" : "▼"}
+                        {expandedId === activity.id
+                          ? "▲"
+                          : "▼"}
                       </button>
                     </td>
                   </tr>
 
                   {expandedId === activity.id && (
                     <tr className="bg-slate-900">
-                      <td colSpan={7} className="p-4">
+                      <td
+                        colSpan={7}
+                        className="p-4"
+                      >
                         <div className="flex justify-between items-center gap-8">
                           <div>
-                            <span className="font-bold">Full Message:</span>{" "}
+                            <span className="font-bold">
+                              Full Message:
+                            </span>{" "}
                             {activity.message}
                           </div>
 
                           <div>
-                            <span className="font-bold">Repository:</span>{" "}
+                            <span className="font-bold">
+                              Repository:
+                            </span>{" "}
                             {activity.repository}
                           </div>
+
+                          
+                        
                         </div>
                       </td>
                     </tr>
@@ -562,16 +460,15 @@ const getVisiblePages = () => {
         </div>
       </div>
       <div className="flex justify-center items-center gap-2 mt-4">
-        {/* Previous Arrow */}
-        <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(currentPage - 1)}
-          className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
-        >
-          &lt;
-        </button>
+  {/* Previous Arrow */}
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(currentPage - 1)}
+    className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
+  >
+    &lt;
+  </button>
 
-<<<<<<< HEAD
   {/* Page Numbers */}
 {/* Page Numbers */}
 {getVisiblePages().map((page, index) =>
@@ -602,32 +499,6 @@ const getVisiblePages = () => {
     &gt;
   </button>
 </div>
-=======
-        {/* Page Numbers */}
-        {Array.from({ length: totalPages }, (_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentPage(index + 1)}
-            className={`px-3 py-2 rounded ${
-              currentPage === index + 1
-                ? "bg-white text-black"
-                : "bg-slate-700 hover:bg-slate-600"
-            }`}
-          >
-            {index + 1}
-          </button>
-        ))}
-
-        {/* Next Arrow */}
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage(currentPage + 1)}
-          className="px-3 py-2 bg-slate-700 rounded disabled:opacity-50"
-        >
-          &gt;
-        </button>
-      </div>
->>>>>>> origin/main
     </div>
   );
 }
