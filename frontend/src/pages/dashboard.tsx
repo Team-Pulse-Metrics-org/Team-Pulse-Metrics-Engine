@@ -160,11 +160,11 @@ function Dashboard() {
     : "";
 
   return (
-    <div className="bg-slate-950 min-h-screen p-8 text-white">
+    <div className="bg-slate-950 min-h-screen p-8 text-slate-100">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400 bg-clip-text text-transparent">
             Dashboard
           </h1>
           <p className="text-slate-400 mt-1">
@@ -190,7 +190,7 @@ function Dashboard() {
             </span>
           </div>
           <p className="text-slate-400 text-sm font-medium">Total Commits</p>
-          <h3 className="text-3xl font-bold mt-1 text-white tracking-tight">
+          <h3 className="text-3xl font-bold mt-1 text-slate-100 tracking-tight">
             {data.stats.total_commits.toLocaleString()}
           </h3>
         </Card>
@@ -206,7 +206,7 @@ function Dashboard() {
             </span>
           </div>
           <p className="text-slate-400 text-sm font-medium">Velocity Score</p>
-          <h3 className="text-3xl font-bold mt-1 text-white tracking-tight">
+          <h3 className="text-3xl font-bold mt-1 text-slate-100 tracking-tight">
             {data.stats.velocity_score}
             <span className="text-lg text-slate-500 font-normal">/100</span>
           </h3>
@@ -223,7 +223,7 @@ function Dashboard() {
             </span>
           </div>
           <p className="text-slate-400 text-sm font-medium">Tasks Resolved</p>
-          <h3 className="text-3xl font-bold mt-1 text-white tracking-tight">
+          <h3 className="text-3xl font-bold mt-1 text-slate-100 tracking-tight">
             {data.stats.tasks_resolved.toLocaleString()}
           </h3>
         </Card>
@@ -239,7 +239,7 @@ function Dashboard() {
             </span>
           </div>
           <p className="text-slate-400 text-sm font-medium">Active Blockers</p>
-          <h3 className="text-3xl font-bold mt-1 text-white tracking-tight">
+          <h3 className="text-3xl font-bold mt-1 text-slate-100 tracking-tight">
             {data.stats.active_blockers.toLocaleString()}
           </h3>
         </Card>
@@ -288,7 +288,7 @@ function Dashboard() {
                           y1={y}
                           x2={chartWidth - paddingX}
                           y2={y}
-                          stroke="#334155"
+                          stroke="var(--color-slate-800)"
                           strokeWidth="1"
                           strokeDasharray="4 4"
                         />
@@ -331,8 +331,8 @@ function Dashboard() {
                           cx={p.x}
                           cy={p.y}
                           r={hoveredPoint === idx ? "6" : "4"}
-                          fill={hoveredPoint === idx ? "#60a5fa" : "#3b82f6"}
-                          stroke="#0f172a"
+                          fill={hoveredPoint === idx ? "var(--color-cyan-400)" : "var(--color-cyan-500)"}
+                          stroke="var(--color-slate-900)"
                           strokeWidth="2"
                           className="transition-all duration-150"
                         />
@@ -360,7 +360,7 @@ function Dashboard() {
                         top: `${(points[hoveredPoint].y / chartHeight) * 100 - 4}%`,
                       }}
                     >
-                      <div className="font-bold text-white text-center">
+                      <div className="font-bold text-slate-100 text-center">
                         {points[hoveredPoint].commits} commits
                       </div>
                       <div className="text-[10px] text-slate-400 text-center">
@@ -481,7 +481,7 @@ function Dashboard() {
                         #{index + 1}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm text-white">{contrib.name}</p>
+                        <p className="font-semibold text-sm text-slate-100">{contrib.name}</p>
                         <p className="text-[11px] text-slate-500">Developer</p>
                       </div>
                     </div>
@@ -532,7 +532,7 @@ function Dashboard() {
                   data.recent_activity.map((activity, idx) => (
                     <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
                       <td className="py-3.5 pr-4">
-                        <span className="text-sm font-semibold text-white block">
+                        <span className="text-sm font-semibold text-slate-100 block">
                           {activity.developer}
                         </span>
                         <span className="text-[10px] text-slate-500">
