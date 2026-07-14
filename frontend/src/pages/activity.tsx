@@ -87,11 +87,6 @@ useEffect(() => {
       console.error("Failed to fetch activities:", err)
     );
 }, []);
-
-       
-
-
-
 //apply search and filter conditions
   const filteredActivities = activities.filter((activity) => {
   const developer = (activity.developer || "").toLowerCase();
@@ -180,7 +175,7 @@ const getVisiblePages = () => {
 
 
   return (
-    <div className="p-8 text-white">
+    <div className="p-8 text-slate-100">
       <h1 className="text-4xl font-bold">Activity</h1>
 
       <p className="text-slate-400 mt-1">
@@ -328,131 +323,132 @@ const getVisiblePages = () => {
   </h2>
 
   <p className="text-slate-400">
-    Total Events:{" "}
-    <span className="text-white font-bold">
+    Total Events:
+    <span className="text-white font-bold ml-2">
       {filteredActivities.length}
     </span>
   </p>
 </div>
-      {/* Table */}
-      <div className="mt-6 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-800 text-slate-300">
-              <tr>
-                <th className="p-4">Timestamp</th>
-                <th className="p-4">Developer</th>
-                <th className="p-4">Type</th>
-                <th className="p-4">Repository</th>
-                <th className="p-4">Message</th>
-                
-                <th className="p-4"></th>
-              </tr>
-            </thead>
+     {/* Table */}
+<div className="mt-6 rounded-xl border border-slate-700 overflow-hidden">
+  <div className="overflow-x-auto">
+    <table className="w-full text-left">
+      <thead className="bg-slate-800 text-slate-300">
+        <tr>
+          <th className="p-4">Time</th>
+          <th className="p-4">Developer</th>
+          <th className="p-4">Activity</th>
+          <th className="p-4">Repository</th>
+          <th className="p-4">Message</th>
+          <th className="p-4 text-right">Details</th>
+        </tr>
+      </thead>
 
-            <tbody>
-              {currentActivities.map((activity) => (
-                <React.Fragment key={activity.id}>
-                  <tr className="border-t border-slate-700 hover:bg-slate-800">
-                    <td className="p-4">
-                      {activity.displayTime}
-                    </td>
+      <tbody>
+        {currentActivities.map((activity) => (
+          <React.Fragment key={activity.id}>
+            <tr className="border-t border-slate-700 hover:bg-slate-800">
+              {/* Time */}
+              <td className="p-4 text-sm text-slate-400">
+                {activity.displayTime}
+              </td>
 
-                    <td className="p-4">
-                      {activity.developer}
-                    </td>
+              {/* Developer */}
+              <td className="p-4">
+                <span className="text-sm font-semibold text-slate-100 block">
+                  {activity.developer}
+                </span>
+              </td>
 
-                    <td className="p-4">
-                      <span
-                        className={`px-2 py-1 rounded-md text-sm text-white ${
-                          activity.type === "git_commit"
-                            ? "bg-blue-600"
-                            : activity.type === "pull_request_closed"
-                            ? "bg-green-600"
-                            : activity.type === "open_issue"
-                            ? "bg-orange-600"
-                            : activity.type === "task_completed"
-                            ? "bg-rose-600"
-                            : "bg-red-600"
-                        }`}
-                      >
-                        {activity.type === "git_commit"
-                          ? "Git Commit"
-                          : activity.type === "pull_request_closed"
-                          ? "PR Closed"
-                          : activity.type === "open_issue"
-                          ? "Issue Opened"
-                          : activity.type === "task_completed"
-                          ? "Issue Closed"
-                          : activity.type}
+              {/* Activity Type */}
+              <td className="p-4">
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs font-bold uppercase ${
+                    activity.type === "git_commit"
+                      ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
+                      : activity.type === "pull_request_closed"
+                      ? "bg-green-600/20 text-green-400 border border-green-500/20"
+                      : activity.type === "open_issue"
+                      ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
+                      : activity.type === "task_completed"
+                      ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
+                      : "bg-slate-700 text-slate-300"
+                  }`}
+                >
+                  {activity.type === "git_commit"
+                    ? "Commit"
+                    : activity.type === "pull_request_closed"
+                    ? "PR Closed"
+                    : activity.type === "open_issue"
+                    ? "Issue Opened"
+                    : activity.type === "task_completed"
+                    ? "Issue Closed"
+                    : activity.type}
+                </span>
+              </td>
+
+              {/* Repository */}
+              <td className="p-4 text-sm text-slate-300">
+                {activity.repository}
+              </td>
+
+              {/* Message */}
+              <td className="p-4 text-sm text-slate-300 max-w-[300px] truncate">
+                {activity.message.length > 40
+                  ? activity.message.substring(0, 40) + "..."
+                  : activity.message}
+              </td>
+
+              {/* Expand Button */}
+              <td className="p-4 text-right">
+                <button
+                  onClick={() =>
+                    setExpandedId(
+                      expandedId === activity.id ? null : activity.id
+                    )
+                  }
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  {expandedId === activity.id ? "▲" : "▼"}
+                </button>
+              </td>
+            </tr>
+
+            {/* Expanded Row */}
+            {expandedId === activity.id && (
+              <tr className="bg-slate-900">
+                <td colSpan={6} className="p-4">
+                  <div className="flex flex-col gap-2 text-sm">
+                    <div>
+                      <span className="font-bold text-slate-200">
+                        Full Message:
+                      </span>{" "}
+                      <span className="text-slate-400">
+                        {activity.message}
                       </span>
-                    </td>
+                    </div>
 
-                    <td className="p-4">
-                      {activity.repository}
-                    </td>
+                    <div>
+                      <span className="font-bold text-slate-200">
+                        Repository:
+                      </span>{" "}
+                      <span className="text-slate-400">
+                        {activity.repository}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </React.Fragment>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-                    <td className="p-4">
-                      {activity.message.length > 25
-                        ? activity.message.substring(
-                            0,
-                            25
-                          ) + "..."
-                        : activity.message}
-                    </td>
-
-                    <td className="p-4">
-                      <button
-                        onClick={() =>
-                          setExpandedId(
-                            expandedId === activity.id
-                              ? null
-                              : activity.id
-                          )
-                        }
-                      >
-                        {expandedId === activity.id
-                          ? "▲"
-                          : "▼"}
-                      </button>
-                    </td>
-                  </tr>
-
-                  {expandedId === activity.id && (
-                    <tr className="bg-slate-900">
-                      <td
-                        colSpan={7}
-                        className="p-4"
-                      >
-                        <div className="flex justify-between items-center gap-8">
-                          <div>
-                            <span className="font-bold">
-                              Full Message:
-                            </span>{" "}
-                            {activity.message}
-                          </div>
-
-                          <div>
-                            <span className="font-bold">
-                              Repository:
-                            </span>{" "}
-                            {activity.repository}
-                          </div>
-
-                          
-                        
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div className="flex justify-center items-center gap-2 mt-4">
-  {/* Previous Arrow */}
+{/* Pagination */}
+<div className="flex justify-center items-center gap-2 mt-4">
   <button
     disabled={currentPage === 1}
     onClick={() => setCurrentPage(currentPage - 1)}
@@ -461,28 +457,26 @@ const getVisiblePages = () => {
     &lt;
   </button>
 
-  {/* Page Numbers */}
-{/* Page Numbers */}
-{getVisiblePages().map((page, index) =>
-  page === "..." ? (
-    <span key={`dots-${index}`} className="px-2 text-gray-400">
-      ...
-    </span>
-  ) : (
-    <button
-      key={page}
-      onClick={() => setCurrentPage(Number(page))}
-      className={`px-3 py-2 rounded ${
-        currentPage === page
-          ? "bg-white text-black"
-          : "bg-slate-700 hover:bg-slate-600"
-      }`}
-    >
-      {page}
-    </button>
-  )
-)}
-  {/* Next Arrow */}
+  {getVisiblePages().map((page, index) =>
+    page === "..." ? (
+      <span key={`dots-${index}`} className="px-2 text-gray-400">
+        ...
+      </span>
+    ) : (
+      <button
+        key={page}
+        onClick={() => setCurrentPage(Number(page))}
+        className={`px-3 py-2 rounded ${
+          currentPage === page
+            ? "bg-white text-black"
+            : "bg-slate-700 hover:bg-slate-600"
+        }`}
+      >
+        {page}
+      </button>
+    )
+  )}
+
   <button
     disabled={currentPage === totalPages}
     onClick={() => setCurrentPage(currentPage + 1)}
@@ -490,7 +484,7 @@ const getVisiblePages = () => {
   >
     &gt;
   </button>
+  </div>
 </div>
-    </div>
-  );
+);
 }
