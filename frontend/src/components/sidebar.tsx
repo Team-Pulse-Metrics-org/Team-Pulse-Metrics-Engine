@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { BsArrowLeftShort } from "react-icons/bs";
@@ -8,12 +8,34 @@ import {
   LuActivity,
   LuCircleUserRound,
   LuLogOut,
+  LuSun,
+  LuMoon,
 } from "react-icons/lu";
 import { BiBarChartAlt } from "react-icons/bi";
 
 function Sidebar() {
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("app_theme") || "dark";
+    }
+    return "dark";
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem("app_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
 
   const menus = [
     {
@@ -48,8 +70,8 @@ function Sidebar() {
       <BsArrowLeftShort
         onClick={() => setOpen(!open)}
         className={`absolute -right-3 top-9
-        text-3xl bg-white text-slate-900 rounded-full
-        border border-slate-900 cursor-pointer
+        text-3xl bg-slate-900 text-slate-100 rounded-full
+        border border-slate-700 cursor-pointer
         duration-300
         ${!open && "rotate-180"}`}
       />
@@ -67,7 +89,7 @@ function Sidebar() {
         />
 
         <h1
-          className={`text-2xl font-medium text-white whitespace-nowrap
+          className={`text-2xl font-medium text-slate-100 whitespace-nowrap
           origin-left duration-300
           ${open ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}
         >
@@ -86,8 +108,8 @@ function Sidebar() {
               ${open ? "justify-start" : "justify-center"}
               ${
                 isActive
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  ? "bg-slate-700 text-slate-100"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-slate-100"
               }`
             }
           >
@@ -107,6 +129,26 @@ function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-slate-700 pt-4">
+        {/* Theme Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className={`flex items-center w-full rounded-md p-3 mb-2 duration-200 cursor-pointer
+          ${open ? "justify-start" : "justify-center"}
+          text-slate-300 hover:bg-slate-800 hover:text-slate-100`}
+        >
+          {theme === "dark" ? (
+            <LuSun className={`text-2xl shrink-0 ${open && "mr-3"}`} />
+          ) : (
+            <LuMoon className={`text-2xl shrink-0 ${open && "mr-3"}`} />
+          )}
+          <span
+            className={`whitespace-nowrap duration-300 text-left
+            ${open ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}
+          >
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </span>
+        </button>
+
         <NavLink
           to="/profile"
           className={({ isActive }) =>
@@ -114,8 +156,8 @@ function Sidebar() {
             ${open ? "justify-start" : "justify-center"}
             ${
               isActive
-                ? "bg-slate-700 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                ? "bg-slate-700 text-slate-100"
+                : "text-slate-300 hover:bg-slate-800 hover:text-slate-100"
             }`
           }
         >
@@ -136,7 +178,7 @@ function Sidebar() {
           className={`flex items-center w-full rounded-md p-3 mt-2
           duration-200
           ${open ? "justify-start" : "justify-center"}
-          text-red-400 hover:bg-red-500 hover:text-white`}
+          text-rose-400 hover:bg-rose-500 hover:text-slate-100`}
         >
           <LuLogOut className={`text-2xl shrink-0 ${open && "mr-3"}`} />
 
