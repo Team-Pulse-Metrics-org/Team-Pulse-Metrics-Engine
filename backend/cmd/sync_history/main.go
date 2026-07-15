@@ -41,6 +41,66 @@ func main() {
 	}
 	database.ConnectDB()
 
+	// Clean up duplicate activities in DB before starting sync
+	fmt.Println("Cleaning up any existing duplicate activities from DB...")
+
+	// 1. Commits
+	res, err := database.DB.Exec(`
+		DELETE FROM activities a
+		WHERE a.type = 'git_commit'
+		  AND a.id NOT IN (
+			SELECT MIN(sub.id)
+			FROM activities sub
+			WHERE sub.type = 'git_commit'
+			GROUP BY sub.payload->>'sha'
+		  )
+	`)
+	if err == nil {
+		if rows, _ := res.RowsAffected(); rows > 0 {
+			fmt.Printf("Deleted %d duplicate commit activities.\n", rows)
+		}
+	} else {
+		fmt.Printf("Error cleaning duplicate commits: %v\n", err)
+	}
+
+	// 2. PRs
+	res, err = database.DB.Exec(`
+		DELETE FROM activities a
+		WHERE a.type = 'pull_request_closed'
+		  AND a.id NOT IN (
+			SELECT MIN(sub.id)
+			FROM activities sub
+			WHERE sub.type = 'pull_request_closed'
+			GROUP BY sub.payload->>'pr_number', sub.payload->>'repository'
+		  )
+	`)
+	if err == nil {
+		if rows, _ := res.RowsAffected(); rows > 0 {
+			fmt.Printf("Deleted %d duplicate PR activities.\n", rows)
+		}
+	} else {
+		fmt.Printf("Error cleaning duplicate PRs: %v\n", err)
+	}
+
+	// 3. Issues
+	res, err = database.DB.Exec(`
+		DELETE FROM activities a
+		WHERE (a.type = 'open_issue' OR a.type = 'task_completed')
+		  AND a.id NOT IN (
+			SELECT MIN(sub.id)
+			FROM activities sub
+			WHERE (sub.type = 'open_issue' OR sub.type = 'task_completed')
+			GROUP BY sub.payload->>'issue_number', sub.payload->>'repository', sub.type
+		  )
+	`)
+	if err == nil {
+		if rows, _ := res.RowsAffected(); rows > 0 {
+			fmt.Printf("Deleted %d duplicate issue activities.\n", rows)
+		}
+	} else {
+		fmt.Printf("Error cleaning duplicate issues: %v\n", err)
+	}
+
 	token := os.Getenv("GITHUB_PAT")
 	owner := os.Getenv("GITHUB_OWNER")
 	repo := os.Getenv("GITHUB_REPO")
@@ -116,6 +176,13 @@ func main() {
 
 			if err != nil {
 				fmt.Printf("User lookup failed: %v\n", err)
+				skipped++
+				continue
+			}
+
+			// Skip if commit already exists
+			existing, err := queries.FindCommitActivityBySHA(commit.SHA)
+			if err == nil && existing != nil {
 				skipped++
 				continue
 			}
@@ -273,7 +340,13 @@ func main() {
 				}
 			}
 
-			
+			// Skip if PR activity already exists
+			existing, err := queries.FindPRClosedActivity(pr.Number, repo, owner+"/"+repo)
+			if err == nil && existing != nil {
+				skipped++
+				continue
+			}
+
 			activityPayload := map[string]any{
 				"repository":         repo,
 				"pr_number":          pr.Number,
@@ -408,6 +481,13 @@ func main() {
 			creator, err := queries.GetUserByGithubUsername(issue.User.Login)
 			if err != nil {
 				fmt.Printf("User lookup failed: %v\n", err)
+				skipped++
+				continue
+			}
+
+			// Skip if issue activity already exists
+			existing, err := queries.FindIssueActivity(issue.Number, repo, owner+"/"+repo)
+			if err == nil && existing != nil {
 				skipped++
 				continue
 			}
