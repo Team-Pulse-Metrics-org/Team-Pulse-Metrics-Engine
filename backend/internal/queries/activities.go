@@ -249,3 +249,37 @@ func UpdateActivity(activity models.Activities) error {
 	return err
 }
 
+func FindCommitActivityBySHA(sha string) (*models.Activities, error) {
+	var activity models.Activities
+
+	query := `
+		SELECT
+			id,
+			user_id,
+			type,
+			payload,
+			logged_at,
+			created_at
+		FROM activities
+		WHERE type = 'git_commit'
+		  AND payload->>'sha' = $1
+		LIMIT 1
+	`
+
+	err := database.DB.QueryRow(query, sha).Scan(
+		&activity.ID,
+		&activity.UserID,
+		&activity.Type,
+		&activity.Payload,
+		&activity.LoggedAt,
+		&activity.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &activity, nil
+}
+
+
