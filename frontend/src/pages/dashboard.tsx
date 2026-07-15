@@ -126,9 +126,9 @@ function Dashboard() {
   // Circular donut chart calculations
   const totalBreakdown =
     (data.activity_breakdown.git_commits || 0) +
-      (data.activity_breakdown.pull_requests_closed || 0) +
-      (data.activity_breakdown.tasks_resolved || 0) +
-      (data.activity_breakdown.active_blockers || 0) || 1;
+    (data.activity_breakdown.pull_requests_closed || 0) +
+    (data.activity_breakdown.tasks_resolved || 0) +
+    (data.activity_breakdown.active_blockers || 0) || 1;
 
   const breakdownCategories = [
     {
@@ -178,17 +178,17 @@ function Dashboard() {
 
   const points = data
     ? data.commit_trend.map((item, i) => {
-        const x =
-          paddingX +
-          i *
-            ((chartWidth - 2 * paddingX) /
-              Math.max(data.commit_trend.length - 1, 1));
-        const y =
-          chartHeight -
-          paddingY -
-          (item.commits / maxCommitsInTrend) * (chartHeight - 2 * paddingY);
-        return { x, y, week: item.week, commits: item.commits };
-      })
+      const x =
+        paddingX +
+        i *
+        ((chartWidth - 2 * paddingX) /
+          Math.max(data.commit_trend.length - 1, 1));
+      const y =
+        chartHeight -
+        paddingY -
+        (item.commits / maxCommitsInTrend) * (chartHeight - 2 * paddingY);
+      return { x, y, week: item.week, commits: item.commits };
+    })
     : [];
 
   const linePath = points
@@ -213,7 +213,7 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-400">
           <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
-          <span>Real-time Sync Active</span>
+          <button className="text-white hover:text-emerald-400 cursor-pointer">Sync</button>
         </div>
       </div>
 
@@ -614,17 +614,16 @@ function Dashboard() {
                       </td>
                       <td className="py-3.5 pr-4">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${
-                            activity.type === "git_commit"
-                              ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
-                              : activity.type === "pull_request_closed"
-                                ? "bg-green-600/20 text-green-400 border border-green-500/20"
-                                : activity.type === "open_issue"
-                                  ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
-                                  : activity.type === "task_completed"
-                                    ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
-                                    : "bg-slate-700"
-                          }`}
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${activity.type === "git_commit"
+                            ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
+                            : activity.type === "pull_request_closed"
+                              ? "bg-green-600/20 text-green-400 border border-green-500/20"
+                              : activity.type === "open_issue"
+                                ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
+                                : activity.type === "task_completed"
+                                  ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
+                                  : "bg-slate-700"
+                            }`}
                         >
                           {activity.type === "git_commit"
                             ? "Commit"
