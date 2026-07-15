@@ -282,4 +282,39 @@ func FindCommitActivityBySHA(sha string) (*models.Activities, error) {
 	return &activity, nil
 }
 
+func FindPRClosedActivity(prNumber int, repoFullName string) (*models.Activities, error) {
+	var activity models.Activities
+
+	query := `
+		SELECT
+			id,
+			user_id,
+			type,
+			payload,
+			logged_at,
+			created_at
+		FROM activities
+		WHERE type = 'pull_request_closed'
+		  AND (payload->>'pr_number')::int = $1
+		  AND payload->>'repository' = $2
+		LIMIT 1
+	`
+
+	err := database.DB.QueryRow(query, prNumber, repoFullName).Scan(
+		&activity.ID,
+		&activity.UserID,
+		&activity.Type,
+		&activity.Payload,
+		&activity.LoggedAt,
+		&activity.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &activity, nil
+}
+
+
 
