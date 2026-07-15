@@ -67,7 +67,7 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	// Check if this PR closed activity has already been logged to prevent duplicates
-	existing, err := queries.FindPRClosedActivity(payload.Number, payload.Repository.FullName)
+	existing, err := queries.FindPRClosedActivity(payload.Number, payload.Repository.Name, payload.Repository.FullName)
 	if err == nil && existing != nil {
 		c.JSON(http.StatusOK, gin.H{"message": "PR activity already stored"})
 		return
