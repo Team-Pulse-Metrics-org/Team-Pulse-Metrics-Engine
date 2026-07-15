@@ -136,3 +136,33 @@ func GetAllMetrics() ([]models.MetricsSnapshot, error) {
 
 	return metrics, nil
 }
+
+func GetWeeklySnapshots(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
+	query := `	
+		SELECT id, user_id, window_start, window_end, velocity_score, total_commits, tasks_resolved, blockers_count, generated_at
+		FROM (
+				SELECT * FROM metrics_snapshots
+				WHERE user_id = $1
+				ORDER BY window_start DESC
+				LIMIT 7
+		) sub 
+		ORDER BY window_start ASC;	
+		`
+
+	rows, err := database.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var snapshots []models.MetricsSnapshot
+	for rows.Next() {
+		var s models.MetricsSnapshot
+		err := rows.Scan(&s.ID, &s.UserID, &s.WindowStart, &s.WindowEnd, &s.VelocityScore, &s.TotalCommits, &s.TasksResolved, &s.BlockersCount, &s.GeneratedAt)
+		if err != nil {
+			return nil, err
+		}
+		snapshots = append(snapshots, s)
+	}
+	return snapshots, nil
+}
