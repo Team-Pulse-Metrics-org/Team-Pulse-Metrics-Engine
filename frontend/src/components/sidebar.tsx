@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-
+import { LuUsers } from "react-icons/lu";
 import { BsArrowLeftShort } from "react-icons/bs";
 import { AiOutlineAntDesign } from "react-icons/ai";
 import {
@@ -52,6 +52,11 @@ function Sidebar() {
       title: "Activity",
       path: "/activity",
       icon: <LuActivity />,
+    },
+    {
+      title: "Teams",
+      path: "/teams",
+     icon: <LuUsers />,
     },
   ];
 
