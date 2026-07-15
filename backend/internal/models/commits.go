@@ -12,7 +12,7 @@ type PushPayload struct {
 	Pusher struct {
 		Name  string `json:"name"`
 		Email string `json:"email"`
-	}
+	} `json:"pusher"`
 	Commits []Commit `json:"commits"`
 }
 
@@ -21,7 +21,8 @@ type Commit struct {
 	Message   string `json:"message"`
 	Timestamp time.Time `json:"timestamp"`
 	Author    struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Username string `json:"username"`
 	} `json:"author"`
 }
