@@ -53,6 +53,7 @@ func main() {
 		protected.GET("/activities", handlers.GetActivities)
 		protected.GET("/dashboard", handlers.GetDashboard)
 		protected.GET("/profile", handlers.GetGitHubProfile)
+		protected.POST("/sync",handlers.HandleSync)
 	}
 
 	l.Info().
