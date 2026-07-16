@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LuUsers } from "react-icons/lu";
 import { BsArrowLeftShort } from "react-icons/bs";
 import { AiOutlineAntDesign } from "react-icons/ai";
+import { FaUserShield } from "react-icons/fa";
 import {
   LuLayoutDashboard,
   LuActivity,
@@ -58,6 +59,11 @@ function Sidebar() {
       path: "/teams",
      icon: <LuUsers />,
     },
+    {
+      title: "Admin",
+      path: "/admin",
+      icon:  <FaUserShield />,
+    }
   ];
 
   const handleSignout = () => {

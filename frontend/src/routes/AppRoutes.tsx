@@ -8,6 +8,7 @@ import Profile from "../pages/profile";
 import Login from "../pages/login";
 import AuthCallback from "../pages/AuthCallback";
 import Home from "../pages/Home";
+import AdminPage from "../pages/Admin";
 function AppRoutes() {
   return (
     <Routes>
@@ -23,6 +24,7 @@ function AppRoutes() {
         <Route path="metrics" element={<Metrics />} />
         <Route path="activity" element={<Activity />} />
         <Route path="teams" element={<Teams />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
