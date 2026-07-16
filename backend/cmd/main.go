@@ -45,12 +45,14 @@ func main() {
 
 	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
 	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
+	
 
 	protected := r.Group("/api/v1")
 	protected.Use(middleware.AuthRequired())
 	{
 		protected.GET("/activities", handlers.GetActivities)
 		protected.GET("/dashboard", handlers.GetDashboard)
+		protected.GET("/profile", handlers.GetGitHubProfile)
 	}
 
 	l.Info().
