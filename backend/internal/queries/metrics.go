@@ -1,9 +1,12 @@
 package queries
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 )
 
@@ -165,4 +168,64 @@ func GetWeeklySnapshots(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
 		snapshots = append(snapshots, s)
 	}
 	return snapshots, nil
+}
+
+func CreateMetric(ctx context.Context, metric models.MetricsSnapshot) error {
+	l := middleware.LogGet()
+	query := `
+	WITH weekly_records AS(
+		SELECT user_id,
+			DATE_TRUNC('week', logged_at) AS window_start,
+			DATE_TRUNC('week', logged_at) + INTERVAL '7 days' AS window_end,
+			COUNT(CASE WHEN type = 'git_commit' THEN 1 END) AS total_commits,
+			COUNT(CASE WHEN type = 'blocker_raised' THEN 1 END) AS open_issues,
+			COUNT(CASE WHEN type = 'task_completed' THEN 1 END) AS tasks_resolved
+		FROM activities
+		WHERE user_id = $1
+		GROUP BY 
+			user_id,
+			DATE_TRUNC('week', logged_at)
+	),
+	calculated_velocity AS (
+		SELECT *, (((total_commits * 1) + (tasks_resolved * 5))::float / (open_issues + 1)::float) AS raw_velocity
+		FROM weekly_records
+	),
+	final_metrics AS (
+	SELECT *,
+	ROUND (LEAST(((raw_velocity / 70.0) * 100), 100.0), 2) AS velocity_percentage
+	FROM calculated_velocity
+	)
+	INSERT INTO metrics_snapshots
+	(user_id, window_start, window_end, velocity_score, total_commits, tasks_resolved, open_issues)
+	SELECT user_id, window_start, window_end, velocity_percentage, total_commits, tasks_resolved, open_issues
+	FROM final_metrics
+	ON CONFLICT (user_id, window_start, window_end)
+	DO UPDATE SET
+		open_issues = EXCLUDED.open_issues,
+		tasks_resolved = EXCLUDED.tasks_resolved,
+		total_commits = EXCLUDED.total_commits,
+		velocity_score = EXCLUDED.velocity_score,
+		generated_At = CURRENT_TIMESTAMP;
+	`
+
+	userIDs, err := GetAllUserIDFromActivity(ctx)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := database.DB.PrepareContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, userID := range userIDs {
+		_, err := stmt.ExecContext(ctx, userID)
+		if err != nil {
+			l.Warn().Timestamp().Msgf("failed running metrics for user %s: %v", userID, err)
+			continue
+		}
+	}
+	return nil
+
 }
