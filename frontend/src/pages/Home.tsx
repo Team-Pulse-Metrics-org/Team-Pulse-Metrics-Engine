@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { LuSun, LuMoon } from "react-icons/lu";
 
 export default function Home() {
-  const [showAbout, setShowAbout] = useState(false);
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("app_theme") || "dark";
