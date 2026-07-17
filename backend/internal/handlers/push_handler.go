@@ -27,7 +27,6 @@ func HandlePush(c *gin.Context) {
 		return
 	}
 
-
 	for _, commit := range payload.Commits {
 
 		if commit.Author.Name != payload.Pusher.Name {
