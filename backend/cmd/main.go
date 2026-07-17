@@ -55,7 +55,19 @@ func main() {
 		protected.GET("/profile", handlers.GetGitHubProfile)
 		protected.POST("/sync",handlers.HandleSync)
 	}
-
+	r.GET("/api/v1/admin/users", handlers.GetUsers)
+	r.PUT(
+		"/api/v1/admin/users/:id/role",
+		handlers.UpdateUserRole,
+	)
+	r.DELETE(
+		"/api/v1/admin/users/:id",
+		handlers.DeleteUser,
+	)
+	r.POST(
+		"/api/v1/admin/users",
+		handlers.CreateUser,
+	)
 	l.Info().
 		Str("port", port).Msgf("Starting Team Pulse Metrics Server on port '%s'", port)
 
