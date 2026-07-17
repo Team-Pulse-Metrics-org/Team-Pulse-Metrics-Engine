@@ -170,7 +170,7 @@ func GetWeeklySnapshots(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
 	return snapshots, nil
 }
 
-func CreateMetric(ctx context.Context, metric models.MetricsSnapshot) error {
+func CreateMetric(ctx context.Context) error {
 	l := middleware.LogGet()
 	query := `
 	WITH weekly_records AS(
@@ -178,7 +178,7 @@ func CreateMetric(ctx context.Context, metric models.MetricsSnapshot) error {
 			DATE_TRUNC('week', logged_at) AS window_start,
 			DATE_TRUNC('week', logged_at) + INTERVAL '7 days' AS window_end,
 			COUNT(CASE WHEN type = 'git_commit' THEN 1 END) AS total_commits,
-			COUNT(CASE WHEN type = 'blocker_raised' THEN 1 END) AS open_issues,
+			COUNT(CASE WHEN type = 'open_issue' THEN 1 END) AS open_issues,
 			COUNT(CASE WHEN type = 'task_completed' THEN 1 END) AS tasks_resolved
 		FROM activities
 		WHERE user_id = $1
@@ -192,7 +192,7 @@ func CreateMetric(ctx context.Context, metric models.MetricsSnapshot) error {
 	),
 	final_metrics AS (
 	SELECT *,
-	ROUND (LEAST(((raw_velocity / 70.0) * 100), 100.0), 2) AS velocity_percentage
+	ROUND (LEAST(((raw_velocity / 70.0) * 100), 100.0):: numeric, 2) AS velocity_percentage
 	FROM calculated_velocity
 	)
 	INSERT INTO metrics_snapshots
@@ -205,7 +205,7 @@ func CreateMetric(ctx context.Context, metric models.MetricsSnapshot) error {
 		tasks_resolved = EXCLUDED.tasks_resolved,
 		total_commits = EXCLUDED.total_commits,
 		velocity_score = EXCLUDED.velocity_score,
-		generated_At = CURRENT_TIMESTAMP;
+		generated_at = CURRENT_TIMESTAMP;
 	`
 
 	userIDs, err := GetAllUserIDFromActivity(ctx)
