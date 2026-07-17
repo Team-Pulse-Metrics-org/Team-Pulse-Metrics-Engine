@@ -48,10 +48,10 @@ func RequestLogger() gin.HandlerFunc {
 			Int("body_size", c.Writer.Size())
 
 		if len(c.Errors) > 0 {
-			event.Str("errors", c.Errors.Last().Err.Error())
+			event.Str("error", c.Errors.Last().Err.Error())
 		}
 
-		if status > 400 {
+		if status >= 400 {
 			event.Str("user-agent", c.Request.UserAgent())
 		}
 
