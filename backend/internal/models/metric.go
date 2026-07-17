@@ -17,3 +17,14 @@ type MetricsSnapshot struct {
 	BlockersCount int       `json:"blockers_count"`
 	GeneratedAt   time.Time `json:"generated_at"`
 }
+
+type RawActivityRow struct {
+	UserID   uuid.UUID
+	Type     string
+	LoggedAT time.Time
+}
+
+type GroupKey struct {
+	UserID    uuid.UUID
+	WeekStart time.Time
+}
