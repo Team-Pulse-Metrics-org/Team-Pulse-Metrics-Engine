@@ -19,17 +19,28 @@ func HandlePush(c *gin.Context) {
 		return
 	}
 
-	actor, err := queries.GetUserByGithubUsername(payload.Pusher.Name)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Github account not linked",
-		})
-		return
-	}
-
 	for _, commit := range payload.Commits {
+		var actor *models.Users
+		var err error
 
-		if commit.Author.Name != payload.Pusher.Name {
+		// 1. Try to find the user in our database who is the author of this commit by their GitHub username
+		if commit.Author.Username != "" {
+			actor, err = queries.GetUserByGithubUsername(commit.Author.Username)
+		}
+
+		// 2. Fallback: Try to find by email if username lookup failed or was empty
+		if (err != nil || actor == nil) && commit.Author.Email != "" {
+			actor, err = queries.GetUserByEmail(commit.Author.Email)
+		}
+
+		// If the commit author is not registered in our database, skip logging this commit
+		if err != nil || actor == nil {
+			continue
+		}
+
+		// Prevent duplicate activities for the same commit
+		existing, err := queries.FindCommitActivityBySHA(commit.ID)
+		if err == nil && existing != nil {
 			continue
 		}
 

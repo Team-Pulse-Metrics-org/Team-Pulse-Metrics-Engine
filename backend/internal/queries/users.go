@@ -267,3 +267,26 @@ func GetUserByGithubID(githubID string) (*models.Users, error) {
 	return &user, nil
 
 }
+func UpdateUserRole(id string, role string) error {
+	query := `
+		UPDATE users
+		SET role = $1
+		WHERE id = $2
+	`
+
+	_, err := database.DB.Exec(query, role, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func DeleteUser(id string) error {
+	query := `
+		DELETE FROM users
+		WHERE id = $1
+	`
+
+	_, err := database.DB.Exec(query, id)
+	return err
+}
