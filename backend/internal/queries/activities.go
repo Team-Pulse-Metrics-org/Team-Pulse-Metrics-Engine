@@ -1,6 +1,9 @@
 package queries
 
 import (
+	"context"
+	"errors"
+
 	"github.com/google/uuid"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
@@ -249,6 +252,32 @@ func UpdateActivity(activity models.Activities) error {
 	return err
 }
 
+func GetAllUserIDFromActivity(ctx context.Context) ([]string, error) {
+	query := `SELECT DISTINCT user_id from activities`
+
+	rows, err := database.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.New("failed to query distinct user ids:")
+	}
+	defer rows.Close()
+
+	var userIDs []string
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, errors.New("failed to scan user id row")
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errors.New("error reading user id rows stream")
+	}
+
+	return userIDs, nil
+}
+
 func FindCommitActivityBySHA(sha string) (*models.Activities, error) {
 	var activity models.Activities
 
@@ -315,6 +344,3 @@ func FindPRClosedActivity(prNumber int, repoName string, repoFullName string) (*
 
 	return &activity, nil
 }
-
-
-
