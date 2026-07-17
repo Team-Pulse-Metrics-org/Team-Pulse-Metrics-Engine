@@ -14,6 +14,15 @@ func StartMetricsWorker(ctx context.Context) {
 	defer ticker.Stop()
 
 	l.Info().Msg("Background Metrics worker initialized")
+	l.Info().Msg("running initial metrics sync on boot...")
+
+	bootCtx, bootCancel := context.WithTimeout(ctx, 2*time.Minute)
+	if err := queries.CreateMetric(bootCtx); err != nil {
+		l.Error().Err(err).Msg("Initial boot metrics sync failed...")
+	} else {
+		l.Info().Msg("Initial boot metrics sync completed.")
+	}
+	bootCancel()
 
 	for {
 		select {
@@ -31,5 +40,4 @@ func StartMetricsWorker(ctx context.Context) {
 			}
 		}
 	}
-
 }
