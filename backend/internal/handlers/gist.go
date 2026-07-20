@@ -28,25 +28,33 @@ type GistRequest struct {
 	Files map[string]GistFile `json:"files"`
 }
 
-func UpdateLastSyncGist(t time.Time) error{
-	Sync:=LastSync{
+func getGithubToken() string {
+	token := os.Getenv("GITHUB_PAT")
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+	}
+	return token
+}
+
+func UpdateLastSyncGist(t time.Time) error {
+	Sync := LastSync{
 		LastSynced: t.Format(time.RFC3339),
 	}
 
 	SyncData, err := json.Marshal(Sync)
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 
-	GistReq:=GistRequest{
+	GistReq := GistRequest{
 		Files: map[string]GistFile{
-			"last_sync.json":{
+			"last_sync.json": {
 				Content: string(SyncData),
 			},
 		},
 	}
 
-	body,err:=json.Marshal(GistReq)
+	body, err := json.Marshal(GistReq)
 	if err != nil {
 		return err
 	}
@@ -54,77 +62,103 @@ func UpdateLastSyncGist(t time.Time) error{
 	gistID := os.Getenv("GIST_ID")
 	url := fmt.Sprintf("https://api.github.com/gists/%s", gistID)
 
-	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(body),)
-		if err != nil {
-			panic(err)
+	tokens := []string{os.Getenv("GITHUB_TOKEN"), os.Getenv("GITHUB_PAT")}
+	var lastErr error
+
+	for _, token := range tokens {
+		if token == "" {
+			continue
 		}
 
-	token:=os.Getenv("GITHUB_TOKEN")
+		req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(body))
+		if err != nil {
+			return err
+		}
 
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "Team-Pulse-Metrics-Engine")
 
-	client:=http.Client{}
-	resp,err:=client.Do(req)
-	if err!=nil{
-		return err
+		client := http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+
+		lastErr = fmt.Errorf("github gist update failed (%d): %s", resp.StatusCode, string(respBody))
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("github gist update failed: %s", string(body))
+	if lastErr != nil {
+		return lastErr
 	}
-
-	return nil
-
+	return fmt.Errorf("no valid GitHub token found for Gist update")
 }
 
-func ReadLastSyncGist() (LastSync, error){
+func ReadLastSyncGist() (LastSync, error) {
 	gistID := os.Getenv("GIST_ID")
-
 	url := fmt.Sprintf("https://api.github.com/gists/%s", gistID)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return LastSync{}, err
+
+	tokens := []string{os.Getenv("GITHUB_TOKEN"), os.Getenv("GITHUB_PAT")}
+	var lastErr error
+
+	for _, token := range tokens {
+		if token == "" {
+			continue
+		}
+
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return LastSync{}, err
+		}
+
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("User-Agent", "Team-Pulse-Metrics-Engine")
+
+		client := http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("github gist read failed (%d): %s", resp.StatusCode, string(body))
+			continue
+		}
+
+		var gistResp GistResponse
+		if err := json.Unmarshal(body, &gistResp); err != nil {
+			return LastSync{}, err
+		}
+
+		content, ok := gistResp.Files["last_sync.json"]
+		if !ok {
+			return LastSync{}, fmt.Errorf("last_sync.json file not found in gist")
+		}
+
+		var sync LastSync
+		if err := json.Unmarshal([]byte(content.Content), &sync); err != nil {
+			return LastSync{}, err
+		}
+
+		return sync, nil
 	}
-	token:=os.Getenv("GITHUB_TOKEN")
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Accept", "application/vnd.github+json")
 
-	client:=http.Client{}
-	resp,err:=client.Do(req)
-
-	if err!=nil{
-		return LastSync{},err
+	if lastErr != nil {
+		return LastSync{}, lastErr
 	}
-
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return LastSync{}, fmt.Errorf("github api error: %s", string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return LastSync{}, err
-	}
-	var gistResp GistResponse
-
-	err = json.Unmarshal(body, &gistResp)
-	if err != nil {
-		return LastSync{}, err
-	}
-
-	content := gistResp.Files["last_sync.json"].Content
-
-	var sync LastSync
-
-	err = json.Unmarshal([]byte(content), &sync)
-	if err != nil {
-		return LastSync{}, err
-	}
-
-	return sync,nil
+	return LastSync{}, fmt.Errorf("no valid GitHub token found for Gist read")
 }
