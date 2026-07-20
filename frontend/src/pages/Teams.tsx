@@ -12,11 +12,28 @@ interface Developer {
 function Teams() {
   const navigate = useNavigate();
    const [developers, setDevelopers] = useState<Developer[]>([]);
-    useEffect(() => {
-  fetch("http://localhost:8080/api/v1/teams")
-    .then((response) => response.json())
-    .then((data) => setDevelopers(data))
-    .catch((error) => console.error("Error fetching teams:", error));
+   useEffect(() => {
+  const token = localStorage.getItem("app_token");
+
+  fetch("http://localhost:8080/api/v1/teams", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then(async (res) => {
+      console.log("Status:", res.status);
+
+      const data = await res.json();
+      console.log("Response:", data);
+
+      if (res.ok && Array.isArray(data)) {
+        setDevelopers(data);
+      } else {
+        console.error("API Error:", data);
+        setDevelopers([]);
+      }
+    })
+    .catch((err) => console.error(err));
 }, []);
   return (
            <div className="p-6">
