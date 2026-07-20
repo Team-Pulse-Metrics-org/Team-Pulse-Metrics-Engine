@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"log"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
@@ -25,9 +26,10 @@ type SyncSummary struct {
 }
 
 func HandleSync(c *gin.Context) {
-	commitSummary := SyncCommits()
-	prSummary := SyncPR()
-	issueSummary := SyncIssue()
+	cfg := loadGitHubConfig()
+	commitSummary := SyncCommits(cfg)
+	prSummary := SyncPR(cfg)
+	issueSummary := SyncIssue(cfg)
 
 	summary := SyncSummary{
 		Commits: SyncCountSummary{
@@ -48,6 +50,22 @@ func HandleSync(c *gin.Context) {
 		"message": "Sync Completed",
 		"summary": summary,
 	})
+
+	if err:=UpdateLastSyncGist(time.Now());err!=nil{
+		log.Printf("Failed to update last sync gist: %v", err)
+	}
+}
+//getting last sync function
+func GetLastSync(c *gin.Context) {
+    sync, err := ReadLastSyncGist()
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": err.Error(),
+        })
+        return
+    }
+
+    c.JSON(http.StatusOK, sync)
 }
 
 type CommitResponse []struct {
@@ -75,19 +93,21 @@ type githubSyncConfig struct {
 	client *http.Client
 }
 
-var githubConfig = loadGitHubConfig()
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
 
 func loadGitHubConfig() githubSyncConfig {
 	return githubSyncConfig{
 		token:  os.Getenv("GITHUB_PAT"),
 		owner:  os.Getenv("GITHUB_OWNER"),
 		repo:   os.Getenv("GITHUB_REPO"),
-		client: &http.Client{},
+		
+		client: httpClient,
 	}
 }
 
-func SyncCommits() SyncCountSummary {
-	cfg := githubConfig
+func SyncCommits(cfg githubSyncConfig) SyncCountSummary {
 	owner := cfg.owner
 	repo := cfg.repo
 	token := cfg.token
@@ -219,8 +239,7 @@ func SyncCommits() SyncCountSummary {
 }
 
 // PR Merged retriver
-func SyncPR() SyncCountSummary {
-	cfg := githubConfig
+func SyncPR(cfg githubSyncConfig) SyncCountSummary {
 	owner := cfg.owner
 	repo := cfg.repo
 	token := cfg.token
@@ -386,8 +405,7 @@ func SyncPR() SyncCountSummary {
 // --------------------------------------------
 // Issue History Sync
 // --------------------------------------------
-func SyncIssue() SyncCountSummary {
-	cfg := githubConfig
+func SyncIssue(cfg githubSyncConfig) SyncCountSummary {
 	owner := cfg.owner
 	repo := cfg.repo
 	token := cfg.token

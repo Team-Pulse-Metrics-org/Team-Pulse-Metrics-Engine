@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { MetricBarChart } from "../components/metricBarChart";
 import { AlertCircle, Calendar, Users } from "lucide-react";
+import { MetricLineChart } from "../components/metricLineChart";
 
 interface MetricCoordinate {
   label: string;
@@ -162,26 +163,26 @@ function Metrics() {
           subtitle="Total volume of codebase contributions"
           data={metricsData.commits[timeframe]}
           valueLabel="commits"
-          color="#3b82f6" // Blue
+          color="#3b82f6"
         />
 
         {/* 2. Velocity Score Card */}
-        <MetricBarChart
+        <MetricLineChart
           title={`${activePeriodLabel} Velocity Score`}
           subtitle="Averaged baseline task sizing execution velocity"
-          data={metricsData.velocity_score[timeframe]}
+          data={metricsData?.velocity_score?.[timeframe] || []}
           valueLabel="pts"
-          color="#06b6d4" // Cyan
-          yAxisMax={100} // Keep scoring range inside fixed ceilings
+          color="#06b6d4"
+          yAxisMin={60}
+          yAxisMax={100}
         />
-
         {/* 3. Tasks Resolved Card */}
         <MetricBarChart
           title={`${activePeriodLabel} Tasks Completed`}
           subtitle="Total user tickets moved directly to a resolved status state"
           data={metricsData.tasks_resolved[timeframe]}
           valueLabel="tasks"
-          color="#10b981" // Emerald
+          color="#10b981"
         />
 
         {/* 4. Open Issues Card */}
@@ -190,7 +191,7 @@ function Metrics() {
           subtitle="Active total backlog volume pending assignment or fix"
           data={metricsData.open_issues[timeframe]}
           valueLabel="issues"
-          color="#ea580c" // Orange
+          color="#ea580c"
         />
       </div>
     </div>

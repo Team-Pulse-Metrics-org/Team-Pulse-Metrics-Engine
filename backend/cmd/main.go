@@ -73,6 +73,7 @@ func main() {
 		protected.POST("/sync", handlers.HandleSync)
 		protected.GET("/metrics", handlers.HandleMetrics)
 		protected.GET("/teams", handlers.GetTeams)
+		protected.GET("/last-sync", handlers.GetLastSync)
 	}
 
 	srv := &http.Server{
