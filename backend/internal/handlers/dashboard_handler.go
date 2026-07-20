@@ -1,33 +1,86 @@
 package handlers
 
 import (
+	"fmt"
 	"math"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
 
 func GetDashboard(c *gin.Context) {
-	// Sync issues from GitHub to activities table in the background/inline
-	owner := os.Getenv("GITHUB_OWNER")
-	repo := os.Getenv("GITHUB_REPO")
-	token := os.Getenv("GITHUB_PAT")
-	if owner != "" && repo != "" && token != "" {
-		_ = queries.SyncGithubIssues(owner, repo, token)
-	}
+	totalStart := time.Now()
+	l := middleware.LogGet()
+
+	var (
+		counts          map[string]int
+		trend           []queries.CommitTrendItem
+		topContributors []queries.TopContributorItem
+		recentActivity  []queries.RecentActivityItem
+
+		durStats           time.Duration
+		durTrend           time.Duration
+		durTopContributors time.Duration
+		durRecentActivity  time.Duration
+	)
+
+	g, _ := errgroup.WithContext(c.Request.Context())
 
 	// 1. Fetch Stats & Activity Breakdown counts
-	counts, err := queries.GetDashboardStats()
-	if err != nil {
+	g.Go(func() error {
+		start := time.Now()
+		var err error
+		counts, err = queries.GetDashboardStats()
+		durStats = time.Since(start)
+		return err
+	})
+
+	// 2. Fetch Commit Trend
+	g.Go(func() error {
+		start := time.Now()
+		var err error
+		trend, err = queries.GetCommitTrend()
+		durTrend = time.Since(start)
+		return err
+	})
+
+	// 3. Fetch Top Contributors
+	g.Go(func() error {
+		start := time.Now()
+		var err error
+		topContributors, err = queries.GetTopContributors()
+		durTopContributors = time.Since(start)
+		return err
+	})
+
+	// 4. Fetch Recent Activity
+	g.Go(func() error {
+		start := time.Now()
+		var err error
+		recentActivity, err = queries.GetRecentActivity()
+		durRecentActivity = time.Since(start)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		l.Error().Err(err).Msg("Failed to fetch dashboard data")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to fetch dashboard stats",
+			"error": "failed to fetch dashboard data",
 		})
 		return
 	}
+
+	totalDuration := time.Since(totalStart)
+
+	l.Info().Msg(fmt.Sprintf("Dashboard Total: %s", totalDuration))
+	l.Info().Msg(fmt.Sprintf("Stats: %s", durStats))
+	l.Info().Msg(fmt.Sprintf("Commit Trend: %s", durTrend))
+	l.Info().Msg(fmt.Sprintf("Top Contributors: %s", durTopContributors))
+	l.Info().Msg(fmt.Sprintf("Recent Activity: %s", durRecentActivity))
 
 	totalCommits := counts["git_commit"]
 	prsClosed := counts["pull_request_closed"]
@@ -35,8 +88,6 @@ func GetDashboard(c *gin.Context) {
 	activeBlockers := counts["open_issue"]
 
 	// Calculate velocity score
-	// Formula: velocity = [(total_commits * 1) + (tasks_completed * 5)] / (open_issues + 1)
-	// Scaled to 0-100 via: 100 * (1 - e^(-raw_velocity / 59))
 	var velocityScore int
 	numerator := float64(totalCommits*1 + tasksResolved*5)
 	denominator := float64(activeBlockers + 1)
@@ -46,38 +97,6 @@ func GetDashboard(c *gin.Context) {
 		velocityScore = int(math.Round(100.0 * (1.0 - math.Exp(-rawVelocity/59.0))))
 	} else {
 		velocityScore = 0
-	}
-
-	start:=time.Now()
-
-	// 2. Fetch Commit Trend
-	trend, err := queries.GetCommitTrend()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to fetch commit trend",
-		})
-		return
-	}
-
-	l:=middleware.LogGet()
-	l.Info().Msg(time.Since(start).String())
-
-	// 3. Fetch Top Contributors
-	topContributors, err := queries.GetTopContributors()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to fetch top contributors",
-		})
-		return
-	}
-
-	// 4. Fetch Recent Activity
-	recentActivity, err := queries.GetRecentActivity()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to fetch recent activities",
-		})
-		return
 	}
 
 	// Assemble response
