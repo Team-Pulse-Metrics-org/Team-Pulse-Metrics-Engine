@@ -54,6 +54,7 @@ func main() {
 		protected.GET("/dashboard", handlers.GetDashboard)
 		protected.GET("/profile", handlers.GetGitHubProfile)
 		protected.POST("/sync",handlers.HandleSync)
+		protected.GET("/last-sync",handlers.GetLastSync)
 	}
 	r.GET("/api/v1/admin/users", handlers.GetUsers)
 	r.PUT(
