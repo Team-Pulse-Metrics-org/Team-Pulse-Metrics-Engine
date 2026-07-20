@@ -14,17 +14,23 @@ type MetricsSnapshot struct {
 	VelocityScore float64   `json:"velocity_score"`
 	TotalCommits  int       `json:"total_commits"`
 	TasksResolved int       `json:"tasks_resolved"`
-	BlockersCount int       `json:"blockers_count"`
+	OpenIssues    int       `json:"open_issues"`
 	GeneratedAt   time.Time `json:"generated_at"`
 }
 
-type RawActivityRow struct {
-	UserID   uuid.UUID
-	Type     string
-	LoggedAT time.Time
+type MetricCoordinate struct {
+	Label string  `json:"label"`
+	Value float64 `json:"value"`
 }
 
-type GroupKey struct {
-	UserID    uuid.UUID
-	WeekStart time.Time
+type ChartTimeline struct {
+	Weekly  []MetricCoordinate `json:"weekly"`
+	Monthly []MetricCoordinate `json:"monthly"`
+}
+
+type UnifiedTeamMetricsResponse struct {
+	Commits       ChartTimeline `json:"commits"`
+	VelocityScore ChartTimeline `json:"velocity_score"`
+	TasksResolved ChartTimeline `json:"tasks_resolved"`
+	OpenIssues    ChartTimeline `json:"open_issues"`
 }

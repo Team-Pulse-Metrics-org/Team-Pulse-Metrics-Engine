@@ -71,6 +71,7 @@ func main() {
 		protected.GET("/dashboard", handlers.GetDashboard)
 		protected.GET("/profile", handlers.GetGitHubProfile)
 		protected.POST("/sync", handlers.HandleSync)
+		protected.GET("/metrics", handlers.HandleMetrics)
 	}
 
 	srv := &http.Server{
