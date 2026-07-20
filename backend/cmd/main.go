@@ -46,6 +46,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	go worker.StartSyncWorker(ctx)
+
 	if os.Getenv("ENABLE_METRICS_TOGGLE") == "true" {
 		go worker.StartMetricsWorker(ctx)
 	} else {
