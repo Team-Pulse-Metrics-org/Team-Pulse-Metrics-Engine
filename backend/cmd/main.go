@@ -65,6 +65,7 @@ func main() {
 		"/api/v1/admin/users",
 		handlers.CreateUser,
 	)
+	r.GET("/api/v1/teams", handlers.GetTeams)
 	l.Info().
 		Str("port", port).Msgf("Starting Team Pulse Metrics Server on port '%s'", port)
 
