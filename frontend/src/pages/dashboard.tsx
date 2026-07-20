@@ -126,8 +126,11 @@ function Dashboard() {
       setSyncSuccess(true);
       setTimeout(() => setSyncSuccess(false), 3000);
 
-      FetchDashboard();
-      FetchLastSync();
+      // Allow background worker to finish updating Gist before re-fetching
+      setTimeout(() => {
+        FetchDashboard();
+        FetchLastSync();
+      }, 2500);
     } catch (err: any) {
       console.error("Error fetching Sync:", err);
       setSyncError(err.message || "Failed to Sync");
