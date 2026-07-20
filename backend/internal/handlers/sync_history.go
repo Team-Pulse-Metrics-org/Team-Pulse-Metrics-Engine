@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -6,14 +6,49 @@ import (
 	"io"
 	"net/http"
 	"os"
-
 	"time"
 
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
-	"github.com/joho/godotenv"
+	"github.com/gin-gonic/gin"
 )
+
+type SyncCountSummary struct {
+	Imported int `json:"imported"`
+	Skipped  int `json:"skipped"`
+}
+
+type SyncSummary struct {
+	Commits      SyncCountSummary `json:"commits"`
+	PullRequests SyncCountSummary `json:"pull_requests"`
+	Issues       SyncCountSummary `json:"issues"`
+}
+
+func HandleSync(c *gin.Context) {
+	commitSummary := SyncCommits()
+	prSummary := SyncPR()
+	issueSummary := SyncIssue()
+
+	summary := SyncSummary{
+		Commits: SyncCountSummary{
+			Imported: commitSummary.Imported,
+			Skipped:  commitSummary.Skipped,
+		},
+		PullRequests: SyncCountSummary{
+			Imported: prSummary.Imported,
+			Skipped:  prSummary.Skipped,
+		},
+		Issues: SyncCountSummary{
+			Imported: issueSummary.Imported,
+			Skipped:  issueSummary.Skipped,
+		},
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Sync Completed",
+		"summary": summary,
+	})
+}
 
 type CommitResponse []struct {
 	SHA string `json:"sha"`
@@ -33,79 +68,30 @@ type CommitResponse []struct {
 	} `json:"author"`
 }
 
-func main() {
+type githubSyncConfig struct {
+	token  string
+	owner  string
+	repo   string
+	client *http.Client
+}
 
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
+var githubConfig = loadGitHubConfig()
+
+func loadGitHubConfig() githubSyncConfig {
+	return githubSyncConfig{
+		token:  os.Getenv("GITHUB_PAT"),
+		owner:  os.Getenv("GITHUB_OWNER"),
+		repo:   os.Getenv("GITHUB_REPO"),
+		client: &http.Client{},
 	}
-	database.ConnectDB()
+}
 
-	// Clean up duplicate activities in DB before starting sync
-	fmt.Println("Cleaning up any existing duplicate activities from DB...")
-
-	// 1. Commits
-	res, err := database.DB.Exec(`
-		DELETE FROM activities a
-		WHERE a.type = 'git_commit'
-		  AND a.id NOT IN (
-			SELECT MIN(sub.id)
-			FROM activities sub
-			WHERE sub.type = 'git_commit'
-			GROUP BY sub.payload->>'sha'
-		  )
-	`)
-	if err == nil {
-		if rows, _ := res.RowsAffected(); rows > 0 {
-			fmt.Printf("Deleted %d duplicate commit activities.\n", rows)
-		}
-	} else {
-		fmt.Printf("Error cleaning duplicate commits: %v\n", err)
-	}
-
-	// 2. PRs
-	res, err = database.DB.Exec(`
-		DELETE FROM activities a
-		WHERE a.type = 'pull_request_closed'
-		  AND a.id NOT IN (
-			SELECT MIN(sub.id)
-			FROM activities sub
-			WHERE sub.type = 'pull_request_closed'
-			GROUP BY sub.payload->>'pr_number', sub.payload->>'repository'
-		  )
-	`)
-	if err == nil {
-		if rows, _ := res.RowsAffected(); rows > 0 {
-			fmt.Printf("Deleted %d duplicate PR activities.\n", rows)
-		}
-	} else {
-		fmt.Printf("Error cleaning duplicate PRs: %v\n", err)
-	}
-
-	// 3. Issues
-	res, err = database.DB.Exec(`
-		DELETE FROM activities a
-		WHERE (a.type = 'open_issue' OR a.type = 'task_completed')
-		  AND a.id NOT IN (
-			SELECT MIN(sub.id)
-			FROM activities sub
-			WHERE (sub.type = 'open_issue' OR sub.type = 'task_completed')
-			GROUP BY sub.payload->>'issue_number', sub.payload->>'repository', sub.type
-		  )
-	`)
-	if err == nil {
-		if rows, _ := res.RowsAffected(); rows > 0 {
-			fmt.Printf("Deleted %d duplicate issue activities.\n", rows)
-		}
-	} else {
-		fmt.Printf("Error cleaning duplicate issues: %v\n", err)
-	}
-
-	token := os.Getenv("GITHUB_PAT")
-	owner := os.Getenv("GITHUB_OWNER")
-	repo := os.Getenv("GITHUB_REPO")
-
-	client := &http.Client{}
+func SyncCommits() SyncCountSummary {
+	cfg := githubConfig
+	owner := cfg.owner
+	repo := cfg.repo
+	token := cfg.token
+	client := cfg.client
 
 	page := 1
 	imported := 0
@@ -121,7 +107,7 @@ func main() {
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			panic(err)
+
 		}
 
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -229,28 +215,31 @@ func main() {
 		page++
 	}
 
-	fmt.Println("===================================")
-	fmt.Println("History Sync Completed")
-	fmt.Println("Imported :", imported)
-	fmt.Println("Skipped  :", skipped)
-	fmt.Println("===================================")
+	return SyncCountSummary{Imported: imported, Skipped: skipped}
+}
 
-	// PR Merged retriver
+// PR Merged retriver
+func SyncPR() SyncCountSummary {
+	cfg := githubConfig
+	owner := cfg.owner
+	repo := cfg.repo
+	token := cfg.token
+	client := cfg.client
 
-	page = 1
-	imported = 0
-	skipped = 0
+	page := 1
+	imported := 0
+	skipped := 0
 
 	type PullRequestResponse []struct {
-		Number int `json:"number"`
-		State  string `json:"state"`
+		Number   int        `json:"number"`
+		State    string     `json:"state"`
 		MergedAt *time.Time `json:"merged_at"`
 
 		User struct {
 			Login string `json:"login"`
 		} `json:"user"`
 
-		Title string `json:"title"`
+		Title   string `json:"title"`
 		HTMLURL string `json:"html_url"`
 
 		Head struct {
@@ -264,7 +253,6 @@ func main() {
 		MergedBy *struct {
 			Login string `json:"login"`
 		} `json:"merged_by"`
-		
 
 		CreatedAt time.Time `json:"created_at"`
 		ClosedAt  time.Time `json:"closed_at"`
@@ -331,7 +319,6 @@ func main() {
 				continue
 			}
 
-
 			actionUser := creator
 
 			if pr.MergedBy != nil {
@@ -348,14 +335,14 @@ func main() {
 			}
 
 			activityPayload := map[string]any{
-				"repository":         repo,
-				"pr_number":          pr.Number,
-				"title":              pr.Title,
-				"state":              pr.State,
+				"repository": repo,
+				"pr_number":  pr.Number,
+				"title":      pr.Title,
+				"state":      pr.State,
 
 				"created_by_user_id": creator.ID,
-				"action_by_user_id": actionUser.ID,
-				
+				"action_by_user_id":  actionUser.ID,
+
 				"source_branch": pr.Head.Ref,
 				"target_branch": pr.Base.Ref,
 
@@ -392,24 +379,28 @@ func main() {
 
 		page++
 	}
-	fmt.Println("===================================")
-	fmt.Println("PR History Sync Completed")
-	fmt.Println("Imported :", imported)
-	fmt.Println("Skipped  :", skipped)
-	fmt.Println("===================================")
 
-	// --------------------------------------------
+	return SyncCountSummary{Imported: imported, Skipped: skipped}
+}
+
+// --------------------------------------------
 // Issue History Sync
 // --------------------------------------------
+func SyncIssue() SyncCountSummary {
+	cfg := githubConfig
+	owner := cfg.owner
+	repo := cfg.repo
+	token := cfg.token
+	client := cfg.client
 
-	page = 1
-	imported = 0
-	skipped = 0
+	page := 1
+	imported := 0
+	skipped := 0
 
 	type IssueResponse []struct {
-		Number int    `json:"number"`
-		Title  string `json:"title"`
-		State  string `json:"state"`
+		Number  int    `json:"number"`
+		Title   string `json:"title"`
+		State   string `json:"state"`
 		HTMLURL string `json:"html_url"`
 
 		User struct {
@@ -493,10 +484,10 @@ func main() {
 			}
 
 			activityPayload := map[string]any{
-				"repository":         repo,
-				"issue_number":       issue.Number,
-				"title":              issue.Title,
-				"state":              issue.State,
+				"repository":   repo,
+				"issue_number": issue.Number,
+				"title":        issue.Title,
+				"state":        issue.State,
 
 				"created_by_user_id": creator.ID,
 				"action_by_user_id":  creator.ID,
@@ -551,9 +542,5 @@ func main() {
 		page++
 	}
 
-	fmt.Println("===================================")
-	fmt.Println("Issue History Sync Completed")
-	fmt.Println("Imported :", imported)
-	fmt.Println("Skipped  :", skipped)
-	fmt.Println("===================================")
+	return SyncCountSummary{Imported: imported, Skipped: skipped}
 }

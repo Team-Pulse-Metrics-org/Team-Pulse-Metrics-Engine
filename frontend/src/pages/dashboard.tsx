@@ -50,7 +50,7 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
-  useEffect(() => {
+  const FetchDashboard = () => {
     const token = localStorage.getItem("app_token");
 
     if (!token) {
@@ -86,6 +86,41 @@ function Dashboard() {
         setError(err.message || "An error occurred");
         setLoading(false);
       });
+  };
+
+  const HandleSync = async () => {
+    const token = localStorage.getItem("app_token");
+
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to Sync");
+      }
+
+      const result = await response.json();
+      console.log(result.message);
+
+      FetchDashboard();
+    } catch (err: any) {
+      console.error("Error fetching Sync:", err);
+      setError(err.message || "Failed to Sync");
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    FetchDashboard()
   }, []);
 
   if (loading) {
@@ -126,9 +161,9 @@ function Dashboard() {
   // Circular donut chart calculations
   const totalBreakdown =
     (data.activity_breakdown.git_commits || 0) +
-      (data.activity_breakdown.pull_requests_closed || 0) +
-      (data.activity_breakdown.tasks_resolved || 0) +
-      (data.activity_breakdown.active_blockers || 0) || 1;
+    (data.activity_breakdown.pull_requests_closed || 0) +
+    (data.activity_breakdown.tasks_resolved || 0) +
+    (data.activity_breakdown.active_blockers || 0) || 1;
 
   const breakdownCategories = [
     {
@@ -178,17 +213,17 @@ function Dashboard() {
 
   const points = data
     ? data.commit_trend.map((item, i) => {
-        const x =
-          paddingX +
-          i *
-            ((chartWidth - 2 * paddingX) /
-              Math.max(data.commit_trend.length - 1, 1));
-        const y =
-          chartHeight -
-          paddingY -
-          (item.commits / maxCommitsInTrend) * (chartHeight - 2 * paddingY);
-        return { x, y, week: item.week, commits: item.commits };
-      })
+      const x =
+        paddingX +
+        i *
+        ((chartWidth - 2 * paddingX) /
+          Math.max(data.commit_trend.length - 1, 1));
+      const y =
+        chartHeight -
+        paddingY -
+        (item.commits / maxCommitsInTrend) * (chartHeight - 2 * paddingY);
+      return { x, y, week: item.week, commits: item.commits };
+    })
     : [];
 
   const linePath = points
@@ -204,7 +239,7 @@ function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-slate-50 via-slate-100 to-slate-400 bg-clip-text text-transparent">
             Dashboard
           </h1>
           <p className="text-slate-400 mt-1">
@@ -213,7 +248,8 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-400">
           <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
-          <span>Real-time Sync Active</span>
+          <button onClick={HandleSync}
+          className="text-white hover:text-emerald-400 cursor-pointer">Sync</button>
         </div>
       </div>
 
@@ -502,7 +538,7 @@ function Dashboard() {
             {breakdownCategories.map((cat) => (
               <div key={cat.name} className="flex items-center gap-2">
                 <span
-                  className={`h-2.5 w-2.5 rounded-full bg-gradient-to-r ${cat.color}`}
+                  className={`h-2.5 w-2.5 rounded-full bg-linear-to-r ${cat.color}`}
                 />
                 <div className="flex flex-col">
                   <span className="text-xs text-slate-400 font-medium">
@@ -614,17 +650,16 @@ function Dashboard() {
                       </td>
                       <td className="py-3.5 pr-4">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${
-                            activity.type === "git_commit"
-                              ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
-                              : activity.type === "pull_request_closed"
-                                ? "bg-green-600/20 text-green-400 border border-green-500/20"
-                                : activity.type === "open_issue"
-                                  ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
-                                  : activity.type === "task_completed"
-                                    ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
-                                    : "bg-slate-700"
-                          }`}
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${activity.type === "git_commit"
+                            ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
+                            : activity.type === "pull_request_closed"
+                              ? "bg-green-600/20 text-green-400 border border-green-500/20"
+                              : activity.type === "open_issue"
+                                ? "bg-orange-600/20 text-orange-400 border border-orange-500/20"
+                                : activity.type === "task_completed"
+                                  ? "bg-rose-600/20 text-rose-400 border border-rose-500/20"
+                                  : "bg-slate-700"
+                            }`}
                         >
                           {activity.type === "git_commit"
                             ? "Commit"
@@ -640,7 +675,7 @@ function Dashboard() {
                       <td className="py-3.5 pr-4 text-xs font-semibold text-slate-400">
                         {activity.repository}
                       </td>
-                      <td className="py-3.5 text-xs text-slate-300 max-w-[240px] truncate">
+                      <td className="py-3.5 text-xs text-slate-300 max-w-60 truncate">
                         {activity.message}
                       </td>
                     </tr>
