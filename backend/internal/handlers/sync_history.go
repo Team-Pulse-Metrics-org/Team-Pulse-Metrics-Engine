@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,9 +13,11 @@ import (
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
 
 type SyncCountSummary struct {
+	Returned int `json:"returned"`
 	Imported int `json:"imported"`
 	Skipped  int `json:"skipped"`
 }
@@ -33,24 +36,58 @@ func RunSync() {
 		}
 	}()
 
-	l.Info().Msg("Starting GitHub synchronization...")
+	// 1. Read last sync timestamp from Gist
+	var lastSyncTime time.Time
+	lastSyncStr := "None (Full Sync)"
+	syncObj, err := ReadLastSyncGist()
+	if err != nil {
+		l.Warn().Err(err).Msg("Failed to read last sync gist; performing full sync")
+	} else if syncObj.LastSynced != "" {
+		if t, err := time.Parse(time.RFC3339, syncObj.LastSynced); err == nil {
+			lastSyncTime = t
+			lastSyncStr = syncObj.LastSynced
+		} else {
+			l.Warn().Err(err).Msg("Failed to parse last sync timestamp; performing full sync")
+		}
+	}
+
+	l.Info().Msg(fmt.Sprintf("Last Sync: %s", lastSyncStr))
+
+	// 2. Capture sync start time
+	syncStartTime := time.Now().UTC()
 
 	cfg := LoadGitHubConfig()
-	commitSummary := SyncCommits(cfg)
-	prSummary := SyncPR(cfg)
-	issueSummary := SyncIssue(cfg)
 
-	l.Info().
-		Int("commits_imported", commitSummary.Imported).
-		Int("commits_skipped", commitSummary.Skipped).
-		Int("prs_imported", prSummary.Imported).
-		Int("prs_skipped", prSummary.Skipped).
-		Int("issues_imported", issueSummary.Imported).
-		Int("issues_skipped", issueSummary.Skipped).
-		Msg("GitHub synchronization completed")
+	// 3. Run sync operations concurrently
+	g, _ := errgroup.WithContext(context.Background())
 
-	if err := UpdateLastSyncGist(time.Now()); err != nil {
-		l.Error().Err(err).Msg("Failed to update last sync gist")
+	g.Go(func() error {
+		_, err := SyncCommits(cfg, lastSyncTime)
+		return err
+	})
+
+	g.Go(func() error {
+		_, err := SyncPR(cfg, lastSyncTime)
+		return err
+	})
+
+	g.Go(func() error {
+		_, err := SyncIssue(cfg, lastSyncTime)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		l.Error().Err(err).Msg("Synchronization failed; Gist timestamp will not be updated")
+		return
+	}
+
+	l.Info().Msg("Synchronization completed successfully.")
+
+	// 4. Update Gist only after all sync operations succeed
+	if err := UpdateLastSyncGist(syncStartTime); err != nil {
+		l.Error().Err(err).Msg("Failed to update last sync gist after successful sync")
+	} else {
+		l.Info().Msg("Updated last_sync in GitHub Gist.")
 	}
 }
 
@@ -61,17 +98,18 @@ func HandleSync(c *gin.Context) {
 		"message": "Sync started",
 	})
 }
+
 //getting last sync function
 func GetLastSync(c *gin.Context) {
-    sync, err := ReadLastSyncGist()
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": err.Error(),
-        })
-        return
-    }
+	sync, err := ReadLastSyncGist()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
-    c.JSON(http.StatusOK, sync)
+	c.JSON(http.StatusOK, sync)
 }
 
 type CommitResponse []struct {
@@ -104,8 +142,12 @@ var httpClient = &http.Client{
 }
 
 func LoadGitHubConfig() GithubSyncConfig {
+	token := os.Getenv("GITHUB_PAT")
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+	}
 	return GithubSyncConfig{
-		Token:  os.Getenv("GITHUB_PAT"),
+		Token:  token,
 		Owner:  os.Getenv("GITHUB_OWNER"),
 		Repo:   os.Getenv("GITHUB_REPO"),
 
@@ -113,13 +155,15 @@ func LoadGitHubConfig() GithubSyncConfig {
 	}
 }
 
-func SyncCommits(cfg GithubSyncConfig) SyncCountSummary {
+func SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
+	l := middleware.LogGet()
 	owner := cfg.Owner
 	repo := cfg.Repo
 	token := cfg.Token
 	client := cfg.Client
 
 	page := 1
+	returnedTotal := 0
 	imported := 0
 	skipped := 0
 
@@ -130,69 +174,74 @@ func SyncCommits(cfg GithubSyncConfig) SyncCountSummary {
 			repo,
 			page,
 		)
+		if !since.IsZero() {
+			url += fmt.Sprintf("&since=%s", since.UTC().Format(time.RFC3339))
+		}
+
+		l.Info().Msg(fmt.Sprintf("GitHub request URL: %s", url))
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("User-Agent", "Team-Pulse-Metrics-Engine")
 
 		resp, err := client.Do(req)
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			panic(fmt.Sprintf("GitHub API Error: %s\n%s", resp.Status, string(body)))
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, fmt.Errorf("GitHub API Error: %s\n%s", resp.Status, string(body))
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		var commits CommitResponse
 
 		if err := json.Unmarshal(body, &commits); err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
-		// No more commits
+		returnedTotal += len(commits)
+
 		if len(commits) == 0 {
 			break
 		}
 
-		fmt.Printf("Importing page %d (%d commits)\n", page, len(commits))
-
+		reachedOldCommits := false
 		for _, commit := range commits {
+			if !since.IsZero() {
+				commitDate, parseErr := time.Parse(time.RFC3339, commit.Commit.Author.Date)
+				if parseErr == nil && (commitDate.Before(since) || commitDate.Equal(since)) {
+					reachedOldCommits = true
+					break
+				}
+			}
 
 			var actor *models.Users
-			var err error
 
 			if commit.Author != nil {
-				// Normal case: GitHub could identify the user
 				actor, err = queries.GetUserByGithubUsername(commit.Author.Login)
 			} else {
-				// Fallback: GitHub couldn't identify the user,
-				// use the Git author name instead
-				fmt.Printf("Fallback lookup using Git author name: %s\n", commit.Commit.Author.Name)
-
 				actor, err = queries.GetUserByGithubUsername(commit.Commit.Author.Name)
 			}
 
 			if err != nil {
-				fmt.Printf("User lookup failed: %v\n", err)
 				skipped++
 				continue
 			}
 
-			// Skip if commit already exists
 			existing, err := queries.FindCommitActivityBySHA(commit.SHA)
 			if err == nil && existing != nil {
 				skipped++
@@ -209,14 +258,12 @@ func SyncCommits(cfg GithubSyncConfig) SyncCountSummary {
 
 			payloadJSON, err := json.Marshal(activityPayload)
 			if err != nil {
-				fmt.Println("JSON marshal error:", err)
 				skipped++
 				continue
 			}
 
 			loggedAt, err := time.Parse(time.RFC3339, commit.Commit.Author.Date)
 			if err != nil {
-				fmt.Println("Time parse error:", commit.Commit.Author.Date, err)
 				skipped++
 				continue
 			}
@@ -229,29 +276,36 @@ func SyncCommits(cfg GithubSyncConfig) SyncCountSummary {
 			}
 
 			if err := queries.CreateActivity(activity); err != nil {
-				fmt.Println("CreateActivity failed:", err)
 				skipped++
 				continue
 			}
 
-			fmt.Println("Inserted:", commit.SHA)
 			imported++
+		}
+
+		if len(commits) < 100 || reachedOldCommits {
+			break
 		}
 
 		page++
 	}
 
-	return SyncCountSummary{Imported: imported, Skipped: skipped}
+	l.Info().Msg(fmt.Sprintf("Commits returned by GitHub: %d", returnedTotal))
+	l.Info().Msg(fmt.Sprintf("New commits inserted: %d", imported))
+
+	return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, nil
 }
 
 // PR Merged retriver
-func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
+func SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
+	l := middleware.LogGet()
 	owner := cfg.Owner
 	repo := cfg.Repo
 	token := cfg.Token
 	client := cfg.Client
 
 	page := 1
+	returnedTotal := 0
 	imported := 0
 	skipped := 0
 
@@ -281,57 +335,65 @@ func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
 
 		CreatedAt time.Time `json:"created_at"`
 		ClosedAt  time.Time `json:"closed_at"`
+		UpdatedAt time.Time `json:"updated_at"`
 	}
 
 	for {
 		url := fmt.Sprintf(
-			"https://api.github.com/repos/%s/%s/pulls?state=closed&per_page=100&page=%d",
+			"https://api.github.com/repos/%s/%s/pulls?state=closed&sort=updated&direction=desc&per_page=100&page=%d",
 			owner,
 			repo,
 			page,
 		)
 
+		l.Info().Msg(fmt.Sprintf("GitHub request URL: %s", url))
+
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("User-Agent", "Team-Pulse-Metrics-Engine")
 
 		resp, err := client.Do(req)
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			panic(fmt.Sprintf("GitHub API Error: %s\n%s", resp.Status, string(body)))
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, fmt.Errorf("GitHub API Error: %s\n%s", resp.Status, string(body))
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		var pullrequest PullRequestResponse
 
 		if err := json.Unmarshal(body, &pullrequest); err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
+
+		returnedTotal += len(pullrequest)
 
 		if len(pullrequest) == 0 {
 			break
 		}
 
-		fmt.Printf("Importing PR page %d (%d PRs)\n", page, len(pullrequest))
-
+		reachedOldPRs := false
 		for _, pr := range pullrequest {
+			if !since.IsZero() && (pr.UpdatedAt.Before(since) || pr.UpdatedAt.Equal(since)) {
+				reachedOldPRs = true
+				break
+			}
 
-			// Skip PRs that were closed but never merged
 			if pr.MergedAt == nil {
 				skipped++
 				continue
@@ -340,7 +402,6 @@ func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
 			creator, err := queries.GetUserByGithubUsername(pr.User.Login)
 			if err != nil {
 				skipped++
-				fmt.Printf("User lookup failed: %v\n", err)
 				continue
 			}
 
@@ -352,7 +413,6 @@ func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
 				}
 			}
 
-			// Skip if PR activity already exists
 			existing, err := queries.FindPRClosedActivity(pr.Number, repo, owner+"/"+repo)
 			if err == nil && existing != nil {
 				skipped++
@@ -381,7 +441,6 @@ func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
 			payloadJSON, err := json.Marshal(activityPayload)
 			if err != nil {
 				skipped++
-				fmt.Println(err)
 				continue
 			}
 
@@ -394,30 +453,37 @@ func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
 
 			if err := queries.CreateActivity(activity); err != nil {
 				skipped++
-				fmt.Println("CreateActivity failed:", err)
 				continue
 			}
 
 			imported++
-			fmt.Printf("Imported PR #%d\n", pr.Number)
+		}
+
+		if len(pullrequest) < 100 || reachedOldPRs {
+			break
 		}
 
 		page++
 	}
 
-	return SyncCountSummary{Imported: imported, Skipped: skipped}
+	l.Info().Msg(fmt.Sprintf("Pull requests returned by GitHub: %d", returnedTotal))
+	l.Info().Msg(fmt.Sprintf("New pull requests inserted: %d", imported))
+
+	return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, nil
 }
 
 // --------------------------------------------
 // Issue History Sync
 // --------------------------------------------
-func SyncIssue(cfg GithubSyncConfig) SyncCountSummary {
+func SyncIssue(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
+	l := middleware.LogGet()
 	owner := cfg.Owner
 	repo := cfg.Repo
 	token := cfg.Token
 	client := cfg.Client
 
 	page := 1
+	returnedTotal := 0
 	imported := 0
 	skipped := 0
 
@@ -437,70 +503,78 @@ func SyncIssue(cfg GithubSyncConfig) SyncCountSummary {
 
 		CreatedAt time.Time  `json:"created_at"`
 		ClosedAt  *time.Time `json:"closed_at"`
+		UpdatedAt time.Time  `json:"updated_at"`
 	}
 
 	for {
-
 		url := fmt.Sprintf(
-			"https://api.github.com/repos/%s/%s/issues?state=all&per_page=100&page=%d",
+			"https://api.github.com/repos/%s/%s/issues?state=all&sort=updated&direction=desc&per_page=100&page=%d",
 			owner,
 			repo,
 			page,
 		)
+		if !since.IsZero() {
+			url += fmt.Sprintf("&since=%s", since.UTC().Format(time.RFC3339))
+		}
+
+		l.Info().Msg(fmt.Sprintf("GitHub request URL: %s", url))
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("User-Agent", "Team-Pulse-Metrics-Engine")
 
 		resp, err := client.Do(req)
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			panic(fmt.Sprintf("GitHub API Error: %s\n%s", resp.Status, string(body)))
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, fmt.Errorf("GitHub API Error: %s\n%s", resp.Status, string(body))
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		if err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
 
 		var issues IssueResponse
 
 		if err := json.Unmarshal(body, &issues); err != nil {
-			panic(err)
+			return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, err
 		}
+
+		returnedTotal += len(issues)
 
 		if len(issues) == 0 {
 			break
 		}
 
-		fmt.Printf("Importing Issue page %d (%d issues)\n", page, len(issues))
-
+		reachedOldIssues := false
 		for _, issue := range issues {
+			if !since.IsZero() && (issue.UpdatedAt.Before(since) || issue.UpdatedAt.Equal(since)) {
+				reachedOldIssues = true
+				break
+			}
 
-			// Skip pull requests
 			if issue.PullRequest != nil {
 				continue
 			}
 
 			creator, err := queries.GetUserByGithubUsername(issue.User.Login)
 			if err != nil {
-				fmt.Printf("User lookup failed: %v\n", err)
 				skipped++
 				continue
 			}
 
-			// Skip if issue activity already exists
 			existing, err := queries.FindIssueActivity(issue.Number, repo, owner+"/"+repo)
 			if err == nil && existing != nil {
 				skipped++
@@ -554,17 +628,22 @@ func SyncIssue(cfg GithubSyncConfig) SyncCountSummary {
 			}
 
 			if err := queries.CreateActivity(activity); err != nil {
-				fmt.Println("CreateActivity failed:", err)
 				skipped++
 				continue
 			}
 
 			imported++
-			fmt.Printf("Imported Issue #%d\n", issue.Number)
+		}
+
+		if len(issues) < 100 || reachedOldIssues {
+			break
 		}
 
 		page++
 	}
 
-	return SyncCountSummary{Imported: imported, Skipped: skipped}
+	l.Info().Msg(fmt.Sprintf("Issues returned by GitHub: %d", returnedTotal))
+	l.Info().Msg(fmt.Sprintf("New issues inserted: %d", imported))
+
+	return SyncCountSummary{Returned: returnedTotal, Imported: imported, Skipped: skipped}, nil
 }
