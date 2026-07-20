@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
+import { TfiReload } from "react-icons/tfi";
 
 interface DashboardData {
   stats: {
@@ -328,7 +329,7 @@ function Dashboard() {
             <button
               onClick={HandleSync}
               disabled={isSyncing}
-              className={`flex items-center gap-2 border rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 shadow-sm select-none cursor-pointer
+              className={`flex items-center gap-2 border rounded-xl px-4 py-2 text-sm font-medium shadow-sm select-none cursor-pointer
                 ${
                   isSyncing
                     ? "bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed"
@@ -346,7 +347,7 @@ function Dashboard() {
               ) : syncError ? (
                 <AlertCircle className="h-4 w-4 text-rose-500" />
               ) : (
-                <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
+                <TfiReload className="h-4 w-4 text-emerald-500 " />
               )}
 
               
@@ -357,10 +358,10 @@ function Dashboard() {
                     ? "History Synced"
                     : syncError
                     ? "Sync Failed"
-                    : "Sync History"}
+                    : "Sync Now"}
                 </span>
             </button>
-            <span className="font-extralight text-xs text-blue-50">Last Synced :{FormatLastSync(lastSynced)} </span>
+            <span className="font-extralight text-xs text-blue-50">Last Synced : {FormatLastSync(lastSynced)} </span>
           </div>
           
         </div>

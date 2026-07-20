@@ -4,7 +4,9 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 )
@@ -46,6 +48,8 @@ func GetDashboard(c *gin.Context) {
 		velocityScore = 0
 	}
 
+	start:=time.Now()
+
 	// 2. Fetch Commit Trend
 	trend, err := queries.GetCommitTrend()
 	if err != nil {
@@ -54,6 +58,9 @@ func GetDashboard(c *gin.Context) {
 		})
 		return
 	}
+
+	l:=middleware.LogGet()
+	l.Info().Msg(time.Since(start).String())
 
 	// 3. Fetch Top Contributors
 	topContributors, err := queries.GetTopContributors()
