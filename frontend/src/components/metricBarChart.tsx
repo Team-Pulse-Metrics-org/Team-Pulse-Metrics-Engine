@@ -20,7 +20,7 @@ interface MetricBarChartProps {
   subtitle: string;
   data: ChartDataPoint[];
   color: string;
-  valueLabel: string; // 🔥 Added: e.g., "commits", "tasks resolved", "points"
+  valueLabel: string; // e.g., "commits", "tasks resolved", "points"
   yAxisMax?: number;
 }
 
@@ -33,7 +33,6 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
   yAxisMax,
 }) => {
   return (
-    // Changed h-full to a fixed/min-height or auto padding container context
     <Card className="p-6 bg-[#0d0e12] border-slate-800/80 rounded-2xl flex flex-col justify-between min-w-0">
       <div className="mb-6">
         <h3 className="text-base font-semibold tracking-tight text-slate-100">
@@ -42,7 +41,6 @@ export const MetricBarChart: React.FC<MetricBarChartProps> = ({
         <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
       </div>
 
-      {/* 🔥 FIX: Stripped flex-1 and explicitly defined height + width bounds */}
       <div className="h-64 w-full block">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
