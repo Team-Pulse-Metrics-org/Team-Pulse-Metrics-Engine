@@ -26,7 +26,7 @@ func HandleMetrics(c *gin.Context) {
 	var commitsMonthly, velocityMonthly, tasksMonthly, issuesMonthly []models.MetricCoordinate
 
 	for _, record := range weeklyRecords {
-		weekLabel := record.WindowStart.Format("jan _2")
+		weekLabel := record.WindowStart.Format("Jan _2")
 
 		commitsWeekly = append(commitsWeekly, models.MetricCoordinate{Label: weekLabel, Value: float64(record.TotalCommits)})
 		velocityWeekly = append(velocityWeekly, models.MetricCoordinate{Label: weekLabel, Value: float64(record.VelocityScore)})
