@@ -10,6 +10,7 @@ import {
   Calendar,
   Layers,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 
 interface DashboardData {
@@ -49,6 +50,12 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
+  const [lastSynced,setLastSynced]=useState("");
 
   const FetchDashboard = () => {
     const token = localStorage.getItem("app_token");
@@ -96,6 +103,10 @@ function Dashboard() {
       return;
     }
 
+    setIsSyncing(true);
+    setSyncError(null);
+    setSyncSuccess(false);
+
     try {
       const response = await fetch("http://localhost:8080/api/v1/sync", {
         method: "POST",
@@ -111,16 +122,77 @@ function Dashboard() {
 
       const result = await response.json();
       console.log(result.message);
+      setSyncSuccess(true);
+      setTimeout(() => setSyncSuccess(false), 3000);
 
       FetchDashboard();
+      FetchLastSync();
     } catch (err: any) {
       console.error("Error fetching Sync:", err);
-      setError(err.message || "Failed to Sync");
-      setLoading(false);
+      setSyncError(err.message || "Failed to Sync");
+      setTimeout(() => setSyncError(null), 5000);
+    } finally {
+      setIsSyncing(false);
     }
   };
+
+  const FetchLastSync = async () => {
+    const token = localStorage.getItem("app_token");
+
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/last-sync", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to load last sync");
+      }
+
+      const data = await response.json();
+
+      setLastSynced(data.last_synced);
+
+    } catch (err) {
+      console.error("Error fetching last sync:", err);
+    }
+  };
+
+  const FormatLastSync = (timestamp:string)=>{
+    if (!timestamp) return "Never";
+
+    const now=new Date();
+    const synced=new Date(timestamp);
+
+    const diff = Math.floor((now.getTime() - synced.getTime()) / 1000);
+
+    if (diff < 60) {
+      return "Just now";
+    }
+    if (diff<3600){
+      const mins=Math.floor(diff/60)
+      return `${mins} min${mins>1 ? "s":""} ago`;
+    }
+    if (diff < 86400) {
+      const hrs = Math.floor(diff / 3600);
+      return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+    }
+
+    const days = Math.floor(diff / 86400);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  }
+
   useEffect(() => {
     FetchDashboard()
+    FetchLastSync()
   }, []);
 
   if (loading) {
@@ -246,10 +318,51 @@ function Dashboard() {
             Real-time engineering operations & performance analytics.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-400">
-          <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
-          <button onClick={HandleSync}
-          className="text-white hover:text-emerald-400 cursor-pointer">Sync</button>
+        <div className="flex items-center gap-3">
+          {syncError && (
+            <span className="text-xs text-rose-400 bg-rose-950/30 border border-rose-900/50 px-3 py-1.5 rounded-lg animate-pulse">
+              {syncError}
+            </span>
+          )}
+          <div className="flex flex-col leading-tight">
+            <button
+              onClick={HandleSync}
+              disabled={isSyncing}
+              className={`flex items-center gap-2 border rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 shadow-sm select-none cursor-pointer
+                ${
+                  isSyncing
+                    ? "bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed"
+                    : syncSuccess
+                    ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50"
+                    : syncError
+                    ? "bg-rose-950/20 border-rose-500/30 text-rose-400 hover:border-rose-500/50"
+                    : "bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 text-slate-100 active:scale-[0.98]"
+                }`}
+            >
+              {isSyncing ? (
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              ) : syncSuccess ? (
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+              ) : syncError ? (
+                <AlertCircle className="h-4 w-4 text-rose-500" />
+              ) : (
+                <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
+              )}
+
+              
+                <span className="text-sm font-medium">
+                  {isSyncing
+                    ? "Syncing..."
+                    : syncSuccess
+                    ? "History Synced"
+                    : syncError
+                    ? "Sync Failed"
+                    : "Sync History"}
+                </span>
+            </button>
+            <span className="font-extralight text-xs text-blue-50">Last Synced :{FormatLastSync(lastSynced)} </span>
+          </div>
+          
         </div>
       </div>
 
