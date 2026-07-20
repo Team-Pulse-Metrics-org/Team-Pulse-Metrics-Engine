@@ -1,12 +1,7 @@
-//import { useEffect, useState } from "react";
-/*interface Developer {
-  name: string;
-  commits: number;
-  velocity: number;
-  tasksResolved: number;
-  openIssues: number;
-}*/
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 interface Developer {
+  id:string;
   name: string;
   commits: number;
   velocity: number;
@@ -14,37 +9,15 @@ interface Developer {
   openIssues: number;
 }
 
-const developers: Developer[] = [
-  {
-    name: "Harshitha V",
-    commits: 45,
-    velocity: 8.5,
-    tasksResolved: 12,
-    openIssues: 3,
-  },
-  {
-    name: "John Doe",
-    commits: 38,
-    velocity: 7.9,
-    tasksResolved: 10,
-    openIssues: 2,
-  },
-  {
-    name: "Jane Smith",
-    commits: 52,
-    velocity: 9.1,
-    tasksResolved: 15,
-    openIssues: 1,
-  },
-];
 function Teams() {
-  /*  const [developers, setDevelopers] = useState<Developer[]>([]);
+  const navigate = useNavigate();
+   const [developers, setDevelopers] = useState<Developer[]>([]);
     useEffect(() => {
   fetch("http://localhost:8080/api/v1/teams")
     .then((response) => response.json())
     .then((data) => setDevelopers(data))
     .catch((error) => console.error("Error fetching teams:", error));
-}, []);*/
+}, []);
   return (
            <div className="p-6">
   {/* Header */}
@@ -106,20 +79,21 @@ function Teams() {
             </div>
 
             <button
-              className="
-                w-full
-                mt-6
-                border border-cyan-500
-                text-cyan-400
-                py-2
-                rounded-xl
-                hover:bg-cyan-500
-                hover:text-white
-                transition-all duration-300
-              "
-            >
-              View Profile
-            </button>
+ onClick={() => navigate("/profile")}
+  className="
+    w-full
+    mt-6
+    border border-cyan-500
+    text-cyan-400
+    py-2
+    rounded-xl
+    hover:bg-cyan-500
+    hover:text-white
+    transition-all duration-300
+  "
+>
+  View Profile
+</button>
           </div>
         ))}
       </div>

@@ -16,6 +16,7 @@ function AppRoutes() {
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      
       <Route element={<Layout />}>
         {/* <Route index element={<Dashboard />} /> */}
         
@@ -25,6 +26,7 @@ function AppRoutes() {
         <Route path="activity" element={<Activity />} />
         <Route path="teams" element={<Teams />} />
         <Route path="admin" element={<AdminPage />} />
+
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
