@@ -2,15 +2,10 @@ package queries
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
-	"github.com/google/uuid"
 )
 
 type CommitTrendItem struct {
@@ -214,128 +209,5 @@ func GetRecentActivity() ([]RecentActivityItem, error) {
 	}
 
 	return activities, nil
-}
-
-func SyncGithubIssues(owner, repo, token string) error {
-	client := &http.Client{}
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues?state=all&per_page=100", owner, repo)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("github api error: %s", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	type GHUser struct {
-		Login string `json:"login"`
-	}
-	type GHIssue struct {
-		Number      int        `json:"number"`
-		Title       string     `json:"title"`
-		State       string     `json:"state"`
-		User        GHUser     `json:"user"`
-		PullRequest interface{} `json:"pull_request"`
-		CreatedAt   time.Time  `json:"created_at"`
-		ClosedAt    *time.Time `json:"closed_at"`
-		HTMLURL     string     `json:"html_url"`
-	}
-
-	var issues []GHIssue
-	if err := json.Unmarshal(body, &issues); err != nil {
-		return err
-	}
-
-	for _, issue := range issues {
-		if issue.PullRequest != nil {
-			continue // skip PRs
-		}
-
-		creator, err := GetUserByGithubUsername(issue.User.Login)
-		var creatorID *string
-		var creatorUsername string = issue.User.Login
-		var userID uuid.UUID
-		if err == nil && creator != nil {
-			idStr := creator.ID.String()
-			creatorID = &idStr
-			creatorUsername = creator.GithubUsername
-			userID = creator.ID
-		} else {
-			users, err := GetAllUsers()
-			if err == nil && len(users) > 0 {
-				userID = users[0].ID
-			} else {
-				continue // skip if we have no users
-			}
-		}
-
-		var activityType models.ActivityType
-		var loggedAt time.Time
-		if issue.State == "open" {
-			activityType = models.ActivityIssueOpened
-			loggedAt = issue.CreatedAt
-		} else {
-			activityType = models.ActivityTaskCompleted
-			if issue.ClosedAt != nil {
-				loggedAt = *issue.ClosedAt
-			} else {
-				loggedAt = issue.CreatedAt
-			}
-		}
-
-		activityPayload := map[string]any{
-			"repository":         repo,
-			"issue_number":       issue.Number,
-			"title":              issue.Title,
-			"state":              issue.State,
-			"created_by_user_id": creatorID,
-			"action_by_user_id":  userID.String(),
-			"created_by":         creatorUsername,
-			"action_by":          creatorUsername,
-			"developer":          creatorUsername,
-			"created_at":         issue.CreatedAt,
-			"closed_at":          issue.ClosedAt,
-			"url":                issue.HTMLURL,
-		}
-
-		payloadJSON, err := json.Marshal(activityPayload)
-		if err != nil {
-			continue
-		}
-
-		existing, err := FindIssueActivity(issue.Number, repo, repo)
-		if err == nil && existing != nil {
-			if existing.Type != activityType {
-				existing.Type = activityType
-				existing.Payload = payloadJSON
-				existing.LoggedAt = loggedAt
-				_ = UpdateActivity(*existing)
-			}
-		} else {
-			newActivity := models.Activities{
-				UserID:   userID,
-				Type:     activityType,
-				Payload:  payloadJSON,
-				LoggedAt: loggedAt,
-			}
-			_ = CreateActivity(newActivity)
-		}
-	}
-
-	return nil
 }
 
