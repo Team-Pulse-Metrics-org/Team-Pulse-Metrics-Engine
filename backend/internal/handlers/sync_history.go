@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"log"
 
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
@@ -25,35 +25,41 @@ type SyncSummary struct {
 	Issues       SyncCountSummary `json:"issues"`
 }
 
-func HandleSync(c *gin.Context) {
-	cfg := loadGitHubConfig()
+func RunSync() {
+	l := middleware.LogGet()
+	defer func() {
+		if r := recover(); r != nil {
+			l.Error().Msgf("RunSync recovered from panic: %v", r)
+		}
+	}()
+
+	l.Info().Msg("Starting GitHub synchronization...")
+
+	cfg := LoadGitHubConfig()
 	commitSummary := SyncCommits(cfg)
 	prSummary := SyncPR(cfg)
 	issueSummary := SyncIssue(cfg)
 
-	summary := SyncSummary{
-		Commits: SyncCountSummary{
-			Imported: commitSummary.Imported,
-			Skipped:  commitSummary.Skipped,
-		},
-		PullRequests: SyncCountSummary{
-			Imported: prSummary.Imported,
-			Skipped:  prSummary.Skipped,
-		},
-		Issues: SyncCountSummary{
-			Imported: issueSummary.Imported,
-			Skipped:  issueSummary.Skipped,
-		},
+	l.Info().
+		Int("commits_imported", commitSummary.Imported).
+		Int("commits_skipped", commitSummary.Skipped).
+		Int("prs_imported", prSummary.Imported).
+		Int("prs_skipped", prSummary.Skipped).
+		Int("issues_imported", issueSummary.Imported).
+		Int("issues_skipped", issueSummary.Skipped).
+		Msg("GitHub synchronization completed")
+
+	if err := UpdateLastSyncGist(time.Now()); err != nil {
+		l.Error().Err(err).Msg("Failed to update last sync gist")
 	}
+}
+
+func HandleSync(c *gin.Context) {
+	go RunSync()
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Sync Completed",
-		"summary": summary,
+		"message": "Sync started",
 	})
-
-	if err:=UpdateLastSyncGist(time.Now());err!=nil{
-		log.Printf("Failed to update last sync gist: %v", err)
-	}
 }
 //getting last sync function
 func GetLastSync(c *gin.Context) {
@@ -86,32 +92,32 @@ type CommitResponse []struct {
 	} `json:"author"`
 }
 
-type githubSyncConfig struct {
-	token  string
-	owner  string
-	repo   string
-	client *http.Client
+type GithubSyncConfig struct {
+	Token  string
+	Owner  string
+	Repo   string
+	Client *http.Client
 }
 
 var httpClient = &http.Client{
 	Timeout: 30 * time.Second,
 }
 
-func loadGitHubConfig() githubSyncConfig {
-	return githubSyncConfig{
-		token:  os.Getenv("GITHUB_PAT"),
-		owner:  os.Getenv("GITHUB_OWNER"),
-		repo:   os.Getenv("GITHUB_REPO"),
-		
-		client: httpClient,
+func LoadGitHubConfig() GithubSyncConfig {
+	return GithubSyncConfig{
+		Token:  os.Getenv("GITHUB_PAT"),
+		Owner:  os.Getenv("GITHUB_OWNER"),
+		Repo:   os.Getenv("GITHUB_REPO"),
+
+		Client: httpClient,
 	}
 }
 
-func SyncCommits(cfg githubSyncConfig) SyncCountSummary {
-	owner := cfg.owner
-	repo := cfg.repo
-	token := cfg.token
-	client := cfg.client
+func SyncCommits(cfg GithubSyncConfig) SyncCountSummary {
+	owner := cfg.Owner
+	repo := cfg.Repo
+	token := cfg.Token
+	client := cfg.Client
 
 	page := 1
 	imported := 0
@@ -239,11 +245,11 @@ func SyncCommits(cfg githubSyncConfig) SyncCountSummary {
 }
 
 // PR Merged retriver
-func SyncPR(cfg githubSyncConfig) SyncCountSummary {
-	owner := cfg.owner
-	repo := cfg.repo
-	token := cfg.token
-	client := cfg.client
+func SyncPR(cfg GithubSyncConfig) SyncCountSummary {
+	owner := cfg.Owner
+	repo := cfg.Repo
+	token := cfg.Token
+	client := cfg.Client
 
 	page := 1
 	imported := 0
@@ -405,11 +411,11 @@ func SyncPR(cfg githubSyncConfig) SyncCountSummary {
 // --------------------------------------------
 // Issue History Sync
 // --------------------------------------------
-func SyncIssue(cfg githubSyncConfig) SyncCountSummary {
-	owner := cfg.owner
-	repo := cfg.repo
-	token := cfg.token
-	client := cfg.client
+func SyncIssue(cfg GithubSyncConfig) SyncCountSummary {
+	owner := cfg.Owner
+	repo := cfg.Repo
+	token := cfg.Token
+	client := cfg.Client
 
 	page := 1
 	imported := 0
