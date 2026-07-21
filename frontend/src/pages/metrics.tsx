@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MetricBarChart } from "../components/metricBarChart";
-import { AlertCircle, Calendar, Users } from "lucide-react";
+import { AlertCircle, Calendar, Users, User } from "lucide-react";
 import { MetricLineChart } from "../components/metricLineChart";
 
 interface MetricCoordinate {
@@ -20,15 +20,38 @@ interface UnifiedMetricsResponse {
   open_issues: ChartTimeline;
 }
 
+interface TeamMember {
+  user_id: string;
+  label: string;
+}
+
 type TimeFrame = "weekly" | "monthly";
 
 function Metrics() {
   const [metricsData, setMetricsData] = useState<UnifiedMetricsResponse | null>(
     null,
   );
-  const [Loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<TimeFrame>("weekly");
+  const [selectedView, setSelectedView] = useState<string>("team");
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("app_token");
+    if (!token) return;
+
+    fetch("http://localhost:8080/api/v1/metrics/users", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: TeamMember[]) => setTeamMembers(data))
+      .catch((err) => console.error("Failed to load team roster:", err));
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("app_token");
@@ -37,8 +60,15 @@ function Metrics() {
       window.location.href = "/login";
       return;
     }
+    setLoading(true);
+    setError(null);
 
-    fetch("http://localhost:8080/api/v1/metrics", {
+    const endpoint =
+      selectedView === "team"
+        ? "http://localhost:8080/api/v1/metrics"
+        : `http://localhost:8080/api/v1/metrics/user/${selectedView}`;
+
+    fetch(endpoint, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -52,7 +82,11 @@ function Metrics() {
           throw new Error("Session expired. Please login again.");
         }
         if (!res.ok) {
-          throw new Error("failed too fetch team metrics snapshot.");
+          throw new Error(
+            selectedView === "team"
+              ? "Failed to fetch team metrics snapshot."
+              : "Failed to fetch individual user metrics snapshot.",
+          );
         }
         return res.json();
       })
@@ -67,15 +101,15 @@ function Metrics() {
         );
         setLoading(false);
       });
-  }, []);
+  }, [selectedView]);
 
-  if (Loading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white w-full">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
           <p className="text-slate-400 animate-pulse font-medium">
-            Loading team metrics stream...
+            Loading metrics stream...
           </p>
         </div>
       </div>
@@ -94,7 +128,7 @@ function Metrics() {
             {error || "No data stream available right now."}
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => setSelectedView(selectedView)} // Triggers refetch block safely
             className="px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors font-medium shadow-lg"
           >
             Retry Connection
@@ -105,6 +139,7 @@ function Metrics() {
   }
 
   const activePeriodLabel = timeframe === "weekly" ? "Weekly" : "Monthly";
+  const contextLabel = selectedView === "team" ? "Team" : "Developer";
 
   return (
     <div className="bg-slate-950 min-h-screen p-8 text-slate-100 w-full">
@@ -112,20 +147,41 @@ function Metrics() {
       <div className="flex flex-col gap-6 mb-8">
         <div>
           <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-slate-50 via-slate-100 to-slate-400 bg-clip-text text-transparent">
-            Metrics
+            Metrics Hub
           </h1>
           <p className="text-slate-400 mt-1">
-            Engineering performance analytics
+            {selectedView === "team"
+              ? "Engineering aggregate performance analytics"
+              : "Individual contribution breakdown analytics"}
           </p>
         </div>
 
         {/* Filter Controls Row */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-300">
-              <Users className="h-4 w-4 text-slate-400" />
-              <select className="bg-transparent focus:outline-none cursor-pointer pr-2">
-                <option value="all">Entire Team</option>
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-300 focus-within:border-slate-700">
+              {selectedView === "team" ? (
+                <Users className="h-4 w-4 text-blue-400" />
+              ) : (
+                <User className="h-4 w-4 text-cyan-400" />
+              )}
+              <select
+                value={selectedView}
+                onChange={(e) => setSelectedView(e.target.value)}
+                className="bg-transparent focus:outline-none cursor-pointer pr-2 text-slate-200 font-medium"
+              >
+                <option value="team" className="bg-slate-900 text-slate-200">
+                  Team
+                </option>
+                {teamMembers.map((member) => (
+                  <option
+                    key={member.user_id}
+                    value={member.user_id}
+                    className="bg-slate-900 text-slate-200"
+                  >
+                    {member.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -155,20 +211,21 @@ function Metrics() {
           </div>
         </div>
       </div>
-      {/* Grid */}
+
+      {/* Grid Layout Container */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full">
         {/* 1. Commits Card */}
         <MetricBarChart
-          title={`${activePeriodLabel} Team Commits`}
+          title={`${activePeriodLabel} ${contextLabel} Commits`}
           subtitle="Total volume of codebase contributions"
-          data={metricsData.commits[timeframe]}
+          data={metricsData.commits[timeframe] || []}
           valueLabel="commits"
           color="#3b82f6"
         />
 
         {/* 2. Velocity Score Card */}
         <MetricLineChart
-          title={`${activePeriodLabel} Velocity Score`}
+          title={`${activePeriodLabel} ${contextLabel} Velocity Score`}
           subtitle="Averaged baseline task sizing execution velocity"
           data={metricsData?.velocity_score?.[timeframe] || []}
           valueLabel="pts"
@@ -176,20 +233,21 @@ function Metrics() {
           yAxisMin={60}
           yAxisMax={100}
         />
+
         {/* 3. Tasks Resolved Card */}
         <MetricBarChart
-          title={`${activePeriodLabel} Tasks Completed`}
+          title={`${activePeriodLabel} ${contextLabel} Tasks Completed`}
           subtitle="Total user tickets moved directly to a resolved status state"
-          data={metricsData.tasks_resolved[timeframe]}
+          data={metricsData.tasks_resolved[timeframe] || []}
           valueLabel="tasks"
           color="#10b981"
         />
 
         {/* 4. Open Issues Card */}
         <MetricBarChart
-          title={`${activePeriodLabel} Outstanding Open Issues`}
+          title={`${activePeriodLabel} ${contextLabel} Outstanding Open Issues`}
           subtitle="Active total backlog volume pending assignment or fix"
-          data={metricsData.open_issues[timeframe]}
+          data={metricsData.open_issues[timeframe] || []}
           valueLabel="issues"
           color="#ea580c"
         />
