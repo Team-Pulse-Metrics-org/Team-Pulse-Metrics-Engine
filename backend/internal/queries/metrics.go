@@ -40,6 +40,45 @@ func GetWeeklySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, err
 	return snapshots, nil
 }
 
+func GetMonthlySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
+	query := `
+        SELECT 
+            COALESCE(SUM(total_commits), 0) AS total_commits,
+            COALESCE(ROUND(AVG(velocity_score):: numeric, 1), 0) AS velocity_score,
+            COALESCE(SUM(tasks_resolved), 0) AS tasks_resolved,
+            COALESCE(SUM(open_issues), 0) AS open_issues,
+            DATE_TRUNC('month', window_start) AS targeted_month
+        FROM metrics_snapshots
+        WHERE user_id = $1
+          AND DATE_TRUNC('month', window_start) IN (
+                SELECT DISTINCT DATE_TRUNC('month', window_start)  
+                FROM metrics_snapshots
+                WHERE user_id = $1
+                ORDER BY DATE_TRUNC('month', window_start) DESC
+                LIMIT 6
+        )
+        GROUP BY targeted_month
+        ORDER BY targeted_month ASC;
+    `
+
+	rows, err := database.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var snapshots []models.MetricsSnapshot
+	for rows.Next() {
+		var s models.MetricsSnapshot
+		err := rows.Scan(&s.TotalCommits, &s.VelocityScore, &s.TasksResolved, &s.OpenIssues, &s.WindowStart)
+		if err != nil {
+			return nil, err
+		}
+		snapshots = append(snapshots, s)
+	}
+	return snapshots, nil
+}
+
 func CreateMetric(ctx context.Context) error {
 	l := middleware.LogGet()
 	query := `
@@ -144,15 +183,15 @@ func GetTeamMonthlyMetrics() ([]models.MetricsSnapshot, error) {
 				COALESCE(ROUND(AVG(velocity_score):: numeric, 1), 0) AS velocity_score,
 				COALESCE(SUM(tasks_resolved), 0) AS tasks_resolved,
 				COALESCE(SUM(open_issues), 0) AS open_issues,
-				DATE_TRUNC('month', window_end) AS targeted_month
+				DATE_TRUNC('month', window_start) AS targeted_month
 		FROM metrics_snapshots
-		WHERE DATE_TRUNC('month', window_end) IN (
-				SELECT DISTINCT DATE_TRUNC('month',window_end)	
+		WHERE DATE_TRUNC('month', window_start) IN (
+				SELECT DISTINCT DATE_TRUNC('month',window_start)	
 				FROM metrics_snapshots
-				ORDER BY DATE_TRUNC('month',window_end) DESC
+				ORDER BY DATE_TRUNC('month',window_start) DESC
 				LIMIT 6
 		)
-		GROUP BY DATE_TRUNC('month', window_end)
+		GROUP BY DATE_TRUNC('month', window_start)
 		ORDER BY targeted_month ASC;
 	`
 
@@ -172,4 +211,29 @@ func GetTeamMonthlyMetrics() ([]models.MetricsSnapshot, error) {
 		snapshots = append(snapshots, s)
 	}
 	return snapshots, nil
+}
+
+func GetUsersFromMetrics() ([]models.UserDropDownItem, error) {
+	query := `
+			SELECT DISTINCT ms.user_id, (u.first_name || ' ' || u.last_name) AS full_name
+			FROM metrics_snapshots ms
+			INNER JOIN users u ON ms.user_id = u.id
+			ORDER BY full_name ASC;
+	`
+
+	rows, err := database.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.UserDropDownItem
+	for rows.Next() {
+		var item models.UserDropDownItem
+		if err := rows.Scan(&item.UserID, &item.Label); err != nil {
+			return nil, err
+		}
+		users = append(users, item)
+	}
+	return users, nil
 }
