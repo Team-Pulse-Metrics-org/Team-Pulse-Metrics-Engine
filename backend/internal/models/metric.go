@@ -51,7 +51,6 @@ func CreateUnifiedResponse(weekly []MetricsSnapshot, monthly []MetricsSnapshot) 
 	tasksMonthly := make([]MetricCoordinate, 0, len(monthly))
 	issuesMonthly := make([]MetricCoordinate, 0, len(monthly))
 
-	// 3. Process Weekly Records
 	for _, record := range weekly {
 		weekLabel := record.WindowStart.Format("Jan _2")
 
@@ -61,7 +60,6 @@ func CreateUnifiedResponse(weekly []MetricsSnapshot, monthly []MetricsSnapshot) 
 		issuesWeekly = append(issuesWeekly, MetricCoordinate{Label: weekLabel, Value: float64(record.OpenIssues)})
 	}
 
-	// 4. Process Monthly Records
 	for _, record := range monthly {
 		monthLabel := record.WindowStart.Format("Jan")
 
@@ -71,7 +69,6 @@ func CreateUnifiedResponse(weekly []MetricsSnapshot, monthly []MetricsSnapshot) 
 		issuesMonthly = append(issuesMonthly, MetricCoordinate{Label: monthLabel, Value: float64(record.OpenIssues)})
 	}
 
-	// 5. Build Unified Payloads
 	return UnifiedMetricsResponse{
 		Commits: ChartTimeline{
 			Weekly:  commitsWeekly,
