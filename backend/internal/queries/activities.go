@@ -6,11 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 )
 
-func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
+func (q *Queries) GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 	var activity models.Activities
 
 	query := `
@@ -27,7 +26,7 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 		WHERE a.id = $1
 	`
 
-	err := database.DB.QueryRow(query, id).Scan(
+	err := q.db.QueryRow(query, id).Scan(
 		&activity.ID,
 		&activity.UserID,
 		&activity.Type,
@@ -44,7 +43,7 @@ func GetActivityByID(id uuid.UUID) (*models.Activities, error) {
 	return &activity, nil
 }
 
-func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
+func (q *Queries) GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 	query := `
 		SELECT
 			a.id,
@@ -60,7 +59,7 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 		ORDER BY a.logged_at DESC
 	`
 
-	rows, err := database.DB.Query(query, userID)
+	rows, err := q.db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +89,7 @@ func GetActivitiesByUserID(userID uuid.UUID) ([]models.Activities, error) {
 	return activities, nil
 }
 
-func GetAllActivities() ([]models.Activities, error) {
+func (q *Queries) GetAllActivities() ([]models.Activities, error) {
 	query := `
 		SELECT
 			a.id,
@@ -105,7 +104,7 @@ func GetAllActivities() ([]models.Activities, error) {
 		ORDER BY a.logged_at DESC
 	`
 
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +134,7 @@ func GetAllActivities() ([]models.Activities, error) {
 	return activities, nil
 }
 
-func CreateActivity(activity models.Activities) error {
+func (q *Queries) CreateActivity(activity models.Activities) error {
 	query := `INSERT INTO activities (
 			user_id,
 			type,
@@ -144,7 +143,7 @@ func CreateActivity(activity models.Activities) error {
 		)
 		VALUES ($1, $2, $3, $4)`
 
-	_, err := database.DB.Exec(
+	_, err := q.db.Exec(
 		query,
 		activity.UserID,
 		activity.Type,
@@ -154,8 +153,8 @@ func CreateActivity(activity models.Activities) error {
 	)
 	return err
 }
-func GetActivities() ([]models.Activities, error) {
-	rows, err := database.DB.Query(`
+func (q *Queries) GetActivities() ([]models.Activities, error) {
+	rows, err := q.db.Query(`
     SELECT
         a.id,
         a.user_id,
@@ -199,7 +198,7 @@ func GetActivities() ([]models.Activities, error) {
 	return activities, nil
 }
 
-func FindIssueActivity(issueNumber int, repoName string, repoFullName string) (*models.Activities, error) {
+func (q *Queries) FindIssueActivity(issueNumber int, repoName string, repoFullName string) (*models.Activities, error) {
 	var activity models.Activities
 
 	query := `
@@ -217,7 +216,7 @@ func FindIssueActivity(issueNumber int, repoName string, repoFullName string) (*
 		LIMIT 1
 	`
 
-	err := database.DB.QueryRow(query, issueNumber, repoName, repoFullName).Scan(
+	err := q.db.QueryRow(query, issueNumber, repoName, repoFullName).Scan(
 		&activity.ID,
 		&activity.UserID,
 		&activity.Type,
@@ -233,7 +232,7 @@ func FindIssueActivity(issueNumber int, repoName string, repoFullName string) (*
 	return &activity, nil
 }
 
-func UpdateActivity(activity models.Activities) error {
+func (q *Queries) UpdateActivity(activity models.Activities) error {
 	query := `
 		UPDATE activities
 		SET type = $1,
@@ -242,7 +241,7 @@ func UpdateActivity(activity models.Activities) error {
 		WHERE id = $4
 	`
 
-	_, err := database.DB.Exec(
+	_, err := q.db.Exec(
 		query,
 		activity.Type,
 		activity.Payload,
@@ -252,10 +251,10 @@ func UpdateActivity(activity models.Activities) error {
 	return err
 }
 
-func GetAllUserIDFromActivity(ctx context.Context) ([]string, error) {
+func (q *Queries) GetAllUserIDFromActivity(ctx context.Context) ([]string, error) {
 	query := `SELECT DISTINCT user_id from activities`
 
-	rows, err := database.DB.QueryContext(ctx, query)
+	rows, err := q.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, errors.New("failed to query distinct user ids:")
 	}
@@ -278,7 +277,7 @@ func GetAllUserIDFromActivity(ctx context.Context) ([]string, error) {
 	return userIDs, nil
 }
 
-func FindCommitActivityBySHA(sha string) (*models.Activities, error) {
+func (q *Queries) FindCommitActivityBySHA(sha string) (*models.Activities, error) {
 	var activity models.Activities
 
 	query := `
@@ -295,7 +294,7 @@ func FindCommitActivityBySHA(sha string) (*models.Activities, error) {
 		LIMIT 1
 	`
 
-	err := database.DB.QueryRow(query, sha).Scan(
+	err := q.db.QueryRow(query, sha).Scan(
 		&activity.ID,
 		&activity.UserID,
 		&activity.Type,
@@ -311,7 +310,7 @@ func FindCommitActivityBySHA(sha string) (*models.Activities, error) {
 	return &activity, nil
 }
 
-func FindPRClosedActivity(prNumber int, repoName string, repoFullName string) (*models.Activities, error) {
+func (q *Queries) FindPRClosedActivity(prNumber int, repoName string, repoFullName string) (*models.Activities, error) {
 	var activity models.Activities
 
 	query := `
@@ -329,7 +328,7 @@ func FindPRClosedActivity(prNumber int, repoName string, repoFullName string) (*
 		LIMIT 1
 	`
 
-	err := database.DB.QueryRow(query, prNumber, repoName, repoFullName).Scan(
+	err := q.db.QueryRow(query, prNumber, repoName, repoFullName).Scan(
 		&activity.ID,
 		&activity.UserID,
 		&activity.Type,

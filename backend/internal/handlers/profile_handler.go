@@ -2,15 +2,31 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/config"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
+
+type UserHandler struct {
+	q   *queries.Queries
+	cfg *config.Config
+	log zerolog.Logger
+}
+
+func NewUserHandler(q *queries.Queries, cfg *config.Config, log zerolog.Logger) *UserHandler {
+	return &UserHandler{
+		q:   q,
+		cfg: cfg,
+		log: log,
+	}
+}
 
 type ProfileResponse struct {
 	GithubID  int    `json:"github_id"`
@@ -22,7 +38,7 @@ type ProfileResponse struct {
 	Following int    `json:"following"`
 }
 
-func GetGitHubProfile(c *gin.Context) {
+func (h *UserHandler) GetGitHubProfile(c *gin.Context) {
 	// 1. Get logged in user ID from Gin context (set by AuthRequired middleware)
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -38,13 +54,16 @@ func GetGitHubProfile(c *gin.Context) {
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "invalid user id format"})
 		return
 	}
 
 	// 2. Retrieve user from database
-	user, err := queries.GetUserByID(userID)
+	user, err := h.q.GetUserByID(userID)
 	if err != nil {
+		h.log.Warn().Err(err).Str("user_id", userID.String()).Msg("user not found in database")
+		c.Error(err)
 		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "user not found"})
 		return
 	}
@@ -53,14 +72,16 @@ func GetGitHubProfile(c *gin.Context) {
 	ghProfileUrl := "https://api.github.com/users/" + user.GithubUsername
 	req, err := http.NewRequestWithContext(c.Request.Context(), "GET", ghProfileUrl, nil)
 	if err != nil {
+		h.log.Error().Err(err).Msg("failed to create request for GitHub API profile fetch")
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to create request to GitHub"})
 		return
 	}
 
 	// Use GITHUB_TOKEN or GITHUB_PAT if available for authentication/rate limit
-	tokenStr := os.Getenv("GITHUB_TOKEN")
+	tokenStr := h.cfg.GithubToken
 	if tokenStr == "" {
-		tokenStr = os.Getenv("GITHUB_PAT")
+		tokenStr = h.cfg.GithubPAT
 	}
 	if tokenStr != "" {
 		req.Header.Set("Authorization", "token "+tokenStr)
@@ -68,12 +89,17 @@ func GetGitHubProfile(c *gin.Context) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		h.log.Error().Err(err).Str("username", user.GithubUsername).Msg("http call to GitHub API failed")
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to fetch github profile"})
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("github api returned status code %d", resp.StatusCode)
+		h.log.Error().Err(err).Str("username", user.GithubUsername).Msg("GitHub API error")
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "github api error"})
 		return
 	}
@@ -89,6 +115,8 @@ func GetGitHubProfile(c *gin.Context) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&ghResponse); err != nil {
+		h.log.Error().Err(err).Msg("failed to decode GitHub profile response")
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to parse github profile"})
 		return
 	}
@@ -108,8 +136,9 @@ func GetGitHubProfile(c *gin.Context) {
 			} else {
 				client = http.DefaultClient
 			}
-			primaryEmail, err := fetchPrimaryEmail(client)
+			primaryEmail, err := fetchPrimaryEmail(c.Request.Context(), client)
 			if err != nil {
+				h.log.Warn().Err(err).Msg("failed to fetch primary email fallback from GitHub")
 				c.Error(err)
 			} else if primaryEmail != "" {
 				email = primaryEmail

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"time"
-
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 )
 
 type CommitTrendItem struct {
@@ -28,7 +26,7 @@ type RecentActivityItem struct {
 	Payload    json.RawMessage `json:"payload"`
 }
 
-func GetDashboardStats() (map[string]int, error) {
+func (q *Queries) GetDashboardStats() (map[string]int, error) {
 	counts := map[string]int{
 		"git_commit":          0,
 		"pull_request_closed": 0,
@@ -41,7 +39,7 @@ func GetDashboardStats() (map[string]int, error) {
 		FROM activities 
 		GROUP BY type
 	`
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +57,7 @@ func GetDashboardStats() (map[string]int, error) {
 	return counts, nil
 }
 
-func GetCommitTrend() ([]CommitTrendItem, error) {
+func (q *Queries) GetCommitTrend() ([]CommitTrendItem, error) {
 	query := `
 		SELECT TO_CHAR(DATE_TRUNC('week', logged_at), 'YYYY-MM-DD') AS week, COUNT(*) AS commits
 		FROM activities
@@ -67,7 +65,7 @@ func GetCommitTrend() ([]CommitTrendItem, error) {
 		GROUP BY week
 		ORDER BY week ASC
 	`
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +87,7 @@ func GetCommitTrend() ([]CommitTrendItem, error) {
 	return trend, nil
 }
 
-func GetTopContributors() ([]TopContributorItem, error) {
+func (q *Queries) GetTopContributors() ([]TopContributorItem, error) {
 	query := `
 		SELECT a.user_id::text, COALESCE(u.first_name || ' ' || u.last_name, u.github_username, 'Unknown') AS name, COUNT(*) AS commits
 		FROM activities a
@@ -99,7 +97,7 @@ func GetTopContributors() ([]TopContributorItem, error) {
 		ORDER BY commits DESC
 		LIMIT 5
 	`
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +119,7 @@ func GetTopContributors() ([]TopContributorItem, error) {
 	return contributors, nil
 }
 
-func GetRecentActivity() ([]RecentActivityItem, error) {
+func (q *Queries) GetRecentActivity() ([]RecentActivityItem, error) {
 	query := `
 		SELECT COALESCE(u.first_name || ' ' || u.last_name, u.github_username, 'Unknown') AS developer, a.type, a.payload, a.logged_at
 		FROM activities a
@@ -129,7 +127,7 @@ func GetRecentActivity() ([]RecentActivityItem, error) {
 		ORDER BY a.logged_at DESC
 		LIMIT 5
 	`
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -210,4 +208,3 @@ func GetRecentActivity() ([]RecentActivityItem, error) {
 
 	return activities, nil
 }
-

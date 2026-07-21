@@ -1,27 +1,46 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/config"
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 )
 
-func HandleWebhook(c *gin.Context) {
-	fmt.Println("Webhook received from GitHub")
+type WebhookHandler struct {
+	q   *queries.Queries
+	cfg *config.Config
+	log zerolog.Logger
+}
+
+func NewWebhookHandler(q *queries.Queries, cfg *config.Config, log zerolog.Logger) *WebhookHandler {
+	return &WebhookHandler{
+		q:   q,
+		cfg: cfg,
+		log: log,
+	}
+}
+
+func (h *WebhookHandler) HandleWebhook(c *gin.Context) {
+	h.log.Info().Msg("Webhook received from GitHub")
 
 	eventType := c.GetHeader("X-GitHub-Event")
-	fmt.Println("Event type:", eventType)
+	h.log.Debug().Str("event_type", eventType).Msg("Processing Webhook event")
 	switch eventType {
 	case "pull_request":
-		HandlePullRequest(c)
+		h.HandlePullRequest(c)
 	case "push":
-		HandlePush(c)
+		h.HandlePush(c)
 	case "issues":
-		HandleIssueRequest(c)
+		h.HandleIssueRequest(c)
 	case "ping":
-		fmt.Println("pong")
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+		return
+	default:
+		h.log.Warn().Str("event_type", eventType).Msg("Unhandled Github event type")
+		c.JSON(http.StatusOK, gin.H{"message": "event ignored"})
 		return
 	}
 }

@@ -6,28 +6,30 @@ import (
 	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 )
 
-func HandlePullRequest(c *gin.Context) {
+func (h *WebhookHandler) HandlePullRequest(c *gin.Context) {
 	var payload models.PullRequestPayload
 
 	if err := c.ShouldBindBodyWithJSON(&payload); err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid PR payload"})
 		return
 	}
 
-	creator, err := queries.GetUserByGithubUsername(payload.PullRequest.User.Login)
+	creator, err := h.q.GetUserByGithubUsername(payload.PullRequest.User.Login)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "PR creator GitHub account not linked",
 		})
 		return
 	}
 
-	user, err := queries.GetUserByGithubUsername(payload.Sender.Login)
+	user, err := h.q.GetUserByGithubUsername(payload.Sender.Login)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Github account not linked",
 		})
@@ -35,9 +37,9 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	activityPayload := map[string]any{
-		"repository": payload.Repository.FullName,
-		"pr_number":  payload.Number,
-		"title":      payload.PullRequest.Title,
+		"repository":         payload.Repository.FullName,
+		"pr_number":          payload.Number,
+		"title":              payload.PullRequest.Title,
 		"state":              payload.PullRequest.State,
 		"merged":             payload.PullRequest.Merged,
 		"created_by_user_id": creator.ID,
@@ -53,6 +55,7 @@ func HandlePullRequest(c *gin.Context) {
 	}
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to encode payload",
 		})
@@ -67,8 +70,9 @@ func HandlePullRequest(c *gin.Context) {
 	}
 
 	// Check if this PR closed activity has already been logged to prevent duplicates
-	existing, err := queries.FindPRClosedActivity(payload.Number, payload.Repository.Name, payload.Repository.FullName)
+	existing, err := h.q.FindPRClosedActivity(payload.Number, payload.Repository.Name, payload.Repository.FullName)
 	if err == nil && existing != nil {
+		c.Error(err)
 		c.JSON(http.StatusOK, gin.H{"message": "PR activity already stored"})
 		return
 	}
@@ -87,12 +91,19 @@ func HandlePullRequest(c *gin.Context) {
 		LoggedAt: loggedAt,
 	}
 
-	err = queries.CreateActivity(activity)
+	err = h.q.CreateActivity(activity)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to save activity",
 		})
 		return
 	}
+
+	h.log.Info().
+		Int("pr_number", payload.Number).
+		Str("repo", payload.Repository.FullName).
+		Msg("PR activity stored successfully")
+
 	c.JSON(http.StatusOK, gin.H{"message": "PR activity stored successfully"})
 }

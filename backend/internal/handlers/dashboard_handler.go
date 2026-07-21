@@ -1,20 +1,17 @@
 package handlers
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"time"
 
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )
 
-func GetDashboard(c *gin.Context) {
+func (h *MetricsHandler) GetDashboard(c *gin.Context) {
 	totalStart := time.Now()
-	l := middleware.LogGet()
 
 	var (
 		counts          map[string]int
@@ -34,7 +31,7 @@ func GetDashboard(c *gin.Context) {
 	g.Go(func() error {
 		start := time.Now()
 		var err error
-		counts, err = queries.GetDashboardStats()
+		counts, err = h.q.GetDashboardStats()
 		durStats = time.Since(start)
 		return err
 	})
@@ -43,7 +40,7 @@ func GetDashboard(c *gin.Context) {
 	g.Go(func() error {
 		start := time.Now()
 		var err error
-		trend, err = queries.GetCommitTrend()
+		trend, err = h.q.GetCommitTrend()
 		durTrend = time.Since(start)
 		return err
 	})
@@ -52,7 +49,7 @@ func GetDashboard(c *gin.Context) {
 	g.Go(func() error {
 		start := time.Now()
 		var err error
-		topContributors, err = queries.GetTopContributors()
+		topContributors, err = h.q.GetTopContributors()
 		durTopContributors = time.Since(start)
 		return err
 	})
@@ -61,13 +58,14 @@ func GetDashboard(c *gin.Context) {
 	g.Go(func() error {
 		start := time.Now()
 		var err error
-		recentActivity, err = queries.GetRecentActivity()
+		recentActivity, err = h.q.GetRecentActivity()
 		durRecentActivity = time.Since(start)
 		return err
 	})
 
 	if err := g.Wait(); err != nil {
-		l.Error().Err(err).Msg("Failed to fetch dashboard data")
+		h.log.Error().Err(err).Msg("failed to fetch dashboard data from database")
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to fetch dashboard data",
 		})
@@ -76,11 +74,13 @@ func GetDashboard(c *gin.Context) {
 
 	totalDuration := time.Since(totalStart)
 
-	l.Info().Msg(fmt.Sprintf("Dashboard Total: %s", totalDuration))
-	l.Info().Msg(fmt.Sprintf("Stats: %s", durStats))
-	l.Info().Msg(fmt.Sprintf("Commit Trend: %s", durTrend))
-	l.Info().Msg(fmt.Sprintf("Top Contributors: %s", durTopContributors))
-	l.Info().Msg(fmt.Sprintf("Recent Activity: %s", durRecentActivity))
+	h.log.Info().
+		Dur("total_duration", totalDuration).
+		Dur("dur_stats", durStats).
+		Dur("dur_trend", durTrend).
+		Dur("dur_top_contributors", durTopContributors).
+		Dur("dur_recent_activity", durRecentActivity).
+		Msg("dashboard metric aggregation metrics")
 
 	totalCommits := counts["git_commit"]
 	prsClosed := counts["pull_request_closed"]
@@ -111,7 +111,7 @@ func GetDashboard(c *gin.Context) {
 		"activity_breakdown": gin.H{
 			"git_commits":          totalCommits,
 			"pull_requests_closed": prsClosed,
-			"tasks_resolved":      tasksResolved,
+			"tasks_resolved":       tasksResolved,
 			"active_blockers":      activeBlockers,
 		},
 		"top_contributors": topContributors,

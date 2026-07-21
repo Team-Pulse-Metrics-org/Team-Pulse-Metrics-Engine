@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )
@@ -28,7 +26,7 @@ type SyncSummary struct {
 	Issues       SyncCountSummary `json:"issues"`
 }
 
-func RunSync() {
+func (h *MetricsHandler) RunSync() {
 	l := middleware.LogGet()
 	defer func() {
 		if r := recover(); r != nil {
@@ -39,7 +37,7 @@ func RunSync() {
 	// 1. Read last sync timestamp from Gist
 	var lastSyncTime time.Time
 	lastSyncStr := "None (Full Sync)"
-	syncObj, err := ReadLastSyncGist()
+	syncObj, err := h.ReadLastSyncGist()
 	if err != nil {
 		l.Warn().Err(err).Msg("Failed to read last sync gist; performing full sync")
 	} else if syncObj.LastSynced != "" {
@@ -56,23 +54,23 @@ func RunSync() {
 	// 2. Capture sync start time
 	syncStartTime := time.Now().UTC()
 
-	cfg := LoadGitHubConfig()
+	cfg := h.LoadGitHubConfig()
 
 	// 3. Run sync operations concurrently
 	g, _ := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		_, err := SyncCommits(cfg, lastSyncTime)
+		_, err := h.SyncCommits(cfg, lastSyncTime)
 		return err
 	})
 
 	g.Go(func() error {
-		_, err := SyncPR(cfg, lastSyncTime)
+		_, err := h.SyncPR(cfg, lastSyncTime)
 		return err
 	})
 
 	g.Go(func() error {
-		_, err := SyncIssue(cfg, lastSyncTime)
+		_, err := h.SyncIssue(cfg, lastSyncTime)
 		return err
 	})
 
@@ -84,24 +82,24 @@ func RunSync() {
 	l.Info().Msg("Synchronization completed successfully.")
 
 	// 4. Update Gist only after all sync operations succeed
-	if err := UpdateLastSyncGist(syncStartTime); err != nil {
+	if err := h.UpdateLastSyncGist(syncStartTime); err != nil {
 		l.Error().Err(err).Msg("Failed to update last sync gist after successful sync")
 	} else {
 		l.Info().Msg("Updated last_sync in GitHub Gist.")
 	}
 }
 
-func HandleSync(c *gin.Context) {
-	go RunSync()
+func (h *MetricsHandler) HandleSync(c *gin.Context) {
+	go h.RunSync()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Sync started",
 	})
 }
 
-//getting last sync function
-func GetLastSync(c *gin.Context) {
-	sync, err := ReadLastSyncGist()
+// getting last sync function
+func (h *MetricsHandler) GetLastSync(c *gin.Context) {
+	sync, err := h.ReadLastSyncGist()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -141,21 +139,21 @@ var httpClient = &http.Client{
 	Timeout: 30 * time.Second,
 }
 
-func LoadGitHubConfig() GithubSyncConfig {
-	token := os.Getenv("GITHUB_PAT")
+func (h *MetricsHandler) LoadGitHubConfig() GithubSyncConfig {
+	token := h.cfg.GithubPAT
 	if token == "" {
-		token = os.Getenv("GITHUB_TOKEN")
+		token = h.cfg.GithubToken
 	}
 	return GithubSyncConfig{
-		Token:  token,
-		Owner:  os.Getenv("GITHUB_OWNER"),
-		Repo:   os.Getenv("GITHUB_REPO"),
+		Token: token,
+		Owner: h.cfg.GithubOwner,
+		Repo:  h.cfg.GithubRepo,
 
 		Client: httpClient,
 	}
 }
 
-func SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
+func (h *MetricsHandler) SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 	l := middleware.LogGet()
 	owner := cfg.Owner
 	repo := cfg.Repo
@@ -232,9 +230,9 @@ func SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error
 			var actor *models.Users
 
 			if commit.Author != nil {
-				actor, err = queries.GetUserByGithubUsername(commit.Author.Login)
+				actor, err = h.q.GetUserByGithubUsername(commit.Author.Login)
 			} else {
-				actor, err = queries.GetUserByGithubUsername(commit.Commit.Author.Name)
+				actor, err = h.q.GetUserByGithubUsername(commit.Commit.Author.Name)
 			}
 
 			if err != nil {
@@ -242,7 +240,7 @@ func SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error
 				continue
 			}
 
-			existing, err := queries.FindCommitActivityBySHA(commit.SHA)
+			existing, err := h.q.FindCommitActivityBySHA(commit.SHA)
 			if err == nil && existing != nil {
 				skipped++
 				continue
@@ -275,7 +273,7 @@ func SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error
 				LoggedAt: loggedAt,
 			}
 
-			if err := queries.CreateActivity(activity); err != nil {
+			if err := h.q.CreateActivity(activity); err != nil {
 				skipped++
 				continue
 			}
@@ -297,7 +295,7 @@ func SyncCommits(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error
 }
 
 // PR Merged retriver
-func SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
+func (h *MetricsHandler) SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 	l := middleware.LogGet()
 	owner := cfg.Owner
 	repo := cfg.Repo
@@ -399,7 +397,7 @@ func SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 				continue
 			}
 
-			creator, err := queries.GetUserByGithubUsername(pr.User.Login)
+			creator, err := h.q.GetUserByGithubUsername(pr.User.Login)
 			if err != nil {
 				skipped++
 				continue
@@ -408,12 +406,12 @@ func SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 			actionUser := creator
 
 			if pr.MergedBy != nil {
-				if merger, err := queries.GetUserByGithubUsername(pr.MergedBy.Login); err == nil {
+				if merger, err := h.q.GetUserByGithubUsername(pr.MergedBy.Login); err == nil {
 					actionUser = merger
 				}
 			}
 
-			existing, err := queries.FindPRClosedActivity(pr.Number, repo, owner+"/"+repo)
+			existing, err := h.q.FindPRClosedActivity(pr.Number, repo, owner+"/"+repo)
 			if err == nil && existing != nil {
 				skipped++
 				continue
@@ -451,7 +449,7 @@ func SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 				LoggedAt: *pr.MergedAt,
 			}
 
-			if err := queries.CreateActivity(activity); err != nil {
+			if err := h.q.CreateActivity(activity); err != nil {
 				skipped++
 				continue
 			}
@@ -475,7 +473,7 @@ func SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 // --------------------------------------------
 // Issue History Sync
 // --------------------------------------------
-func SyncIssue(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
+func (h *MetricsHandler) SyncIssue(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) {
 	l := middleware.LogGet()
 	owner := cfg.Owner
 	repo := cfg.Repo
@@ -569,13 +567,13 @@ func SyncIssue(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) 
 				continue
 			}
 
-			creator, err := queries.GetUserByGithubUsername(issue.User.Login)
+			creator, err := h.q.GetUserByGithubUsername(issue.User.Login)
 			if err != nil {
 				skipped++
 				continue
 			}
 
-			existing, err := queries.FindIssueActivity(issue.Number, repo, owner+"/"+repo)
+			existing, err := h.q.FindIssueActivity(issue.Number, repo, owner+"/"+repo)
 			if err == nil && existing != nil {
 				skipped++
 				continue
@@ -627,7 +625,7 @@ func SyncIssue(cfg GithubSyncConfig, since time.Time) (SyncCountSummary, error) 
 				LoggedAt: loggedAt,
 			}
 
-			if err := queries.CreateActivity(activity); err != nil {
+			if err := h.q.CreateActivity(activity); err != nil {
 				skipped++
 				continue
 			}

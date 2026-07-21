@@ -2,32 +2,32 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 )
 
-func HandleIssueRequest(c *gin.Context) {
+func (h *WebhookHandler) HandleIssueRequest(c *gin.Context) {
 	var payload models.IssuePayload
 
 	if err := c.ShouldBindBodyWithJSON(&payload); err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid issue payload"})
 		return
 	}
 
-	actor, err := queries.GetUserByGithubUsername(payload.Sender.Login)
+	actor, err := h.q.GetUserByGithubUsername(payload.Sender.Login)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Github account not linked",
 		})
 		return
 	}
 
-	creator, err := queries.GetUserByGithubUsername(payload.Issue.User.Login)
+	creator, err := h.q.GetUserByGithubUsername(payload.Issue.User.Login)
 	var creatorID *string
 	var creatorUsername string = payload.Issue.User.Login
 	if err == nil && creator != nil {
@@ -52,6 +52,7 @@ func HandleIssueRequest(c *gin.Context) {
 	}
 	payloadJSON, err := json.Marshal(activityPayload)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to encode payload",
 		})
@@ -70,20 +71,22 @@ func HandleIssueRequest(c *gin.Context) {
 		loggedAt = payload.Issue.ClosedAt
 
 	default:
+		h.log.Info().Str("action", payload.Action).Msg("Issue action ignored")
 		c.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("Issue action '%s' ignored", payload.Action),
+			"message": "Issue action '" + payload.Action + "' ignored",
 		})
 		return
 	}
 
-	existingActivity, err := queries.FindIssueActivity(payload.Issue.Number, payload.Repository.Name, payload.Repository.FullName)
+	existingActivity, err := h.q.FindIssueActivity(payload.Issue.Number, payload.Repository.Name, payload.Repository.FullName)
 	if err == nil && existingActivity != nil {
 		existingActivity.Type = activityType
 		existingActivity.Payload = payloadJSON
 		existingActivity.LoggedAt = loggedAt
 
-		err = queries.UpdateActivity(*existingActivity)
+		err = h.q.UpdateActivity(*existingActivity)
 		if err != nil {
+			c.Error(err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to update activity",
 			})
@@ -101,8 +104,9 @@ func HandleIssueRequest(c *gin.Context) {
 		Payload:  payloadJSON,
 		LoggedAt: loggedAt,
 	}
-	err = queries.CreateActivity(activity)
+	err = h.q.CreateActivity(activity)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to save activity",
 		})
@@ -113,4 +117,3 @@ func HandleIssueRequest(c *gin.Context) {
 		"message": "Issue activity stored successfully",
 	})
 }
-
