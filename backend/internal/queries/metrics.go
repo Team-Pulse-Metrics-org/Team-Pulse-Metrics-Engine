@@ -5,12 +5,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 )
 
-func GetWeeklySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
+func (q *Queries) GetWeeklySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
 	query := `	
 		SELECT id, user_id, window_start, window_end, velocity_score, total_commits, tasks_resolved, open_issues, generated_at
 		FROM (
@@ -22,7 +21,7 @@ func GetWeeklySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, err
 		ORDER BY window_start ASC;	
 		`
 
-	rows, err := database.DB.Query(query, userID)
+	rows, err := q.db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +39,7 @@ func GetWeeklySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, err
 	return snapshots, nil
 }
 
-func GetMonthlySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
+func (q *Queries) GetMonthlySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, error) {
 	query := `
         SELECT 
             COALESCE(SUM(total_commits), 0) AS total_commits,
@@ -61,7 +60,7 @@ func GetMonthlySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, er
         ORDER BY targeted_month ASC;
     `
 
-	rows, err := database.DB.Query(query, userID)
+	rows, err := q.db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func GetMonthlySnapshotsByUserID(userID uuid.UUID) ([]models.MetricsSnapshot, er
 	return snapshots, nil
 }
 
-func CreateMetric(ctx context.Context) error {
+func (q *Queries) CreateMetric(ctx context.Context) error {
 	l := middleware.LogGet()
 	query := `
 	WITH weekly_records AS(
@@ -117,12 +116,12 @@ func CreateMetric(ctx context.Context) error {
 		generated_at = CURRENT_TIMESTAMP;
 	`
 
-	userIDs, err := GetAllUserIDFromActivity(ctx)
+	userIDs, err := q.GetAllUserIDFromActivity(ctx)
 	if err != nil {
 		return err
 	}
 
-	stmt, err := database.DB.PrepareContext(ctx, query)
+	stmt, err := q.db.PrepareContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -138,7 +137,7 @@ func CreateMetric(ctx context.Context) error {
 	return nil
 }
 
-func GetTeamWeeklyMetrics() ([]models.MetricsSnapshot, error) {
+func (q *Queries) GetTeamWeeklyMetrics() ([]models.MetricsSnapshot, error) {
 	query := `
 		SELECT 
 				COALESCE(SUM(total_commits), 0) AS total_commits,
@@ -158,7 +157,7 @@ func GetTeamWeeklyMetrics() ([]models.MetricsSnapshot, error) {
 		ORDER BY window_start ASC;
 	`
 
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +175,7 @@ func GetTeamWeeklyMetrics() ([]models.MetricsSnapshot, error) {
 	return snapshots, nil
 }
 
-func GetTeamMonthlyMetrics() ([]models.MetricsSnapshot, error) {
+func (q *Queries) GetTeamMonthlyMetrics() ([]models.MetricsSnapshot, error) {
 	query := `
 			SELECT 
 				COALESCE(SUM(total_commits), 0) AS total_commits,
@@ -195,7 +194,7 @@ func GetTeamMonthlyMetrics() ([]models.MetricsSnapshot, error) {
 		ORDER BY targeted_month ASC;
 	`
 
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +212,7 @@ func GetTeamMonthlyMetrics() ([]models.MetricsSnapshot, error) {
 	return snapshots, nil
 }
 
-func GetUsersFromMetrics() ([]models.UserDropDownItem, error) {
+func (q *Queries) GetUsersFromMetrics() ([]models.UserDropDownItem, error) {
 	query := `
 			SELECT DISTINCT ms.user_id, (u.first_name || ' ' || u.last_name) AS full_name
 			FROM metrics_snapshots ms
@@ -221,7 +220,7 @@ func GetUsersFromMetrics() ([]models.UserDropDownItem, error) {
 			ORDER BY full_name ASC;
 	`
 
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}

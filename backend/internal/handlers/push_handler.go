@@ -2,19 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
 )
 
-func HandlePush(c *gin.Context) {
+func (h *WebhookHandler) HandlePush(c *gin.Context) {
 	var payload models.PushPayload
 
 	if err := c.ShouldBindBodyWithJSON(&payload); err != nil {
-		fmt.Println("Error binding json:", err)
+		c.Error(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid push payload"})
 		return
 	}
@@ -25,12 +23,12 @@ func HandlePush(c *gin.Context) {
 
 		// 1. Try to find the user in our database who is the author of this commit by their GitHub username
 		if commit.Author.Username != "" {
-			actor, err = queries.GetUserByGithubUsername(commit.Author.Username)
+			actor, err = h.q.GetUserByGithubUsername(commit.Author.Username)
 		}
 
 		// 2. Fallback: Try to find by email if username lookup failed or was empty
 		if (err != nil || actor == nil) && commit.Author.Email != "" {
-			actor, err = queries.GetUserByEmail(commit.Author.Email)
+			actor, err = h.q.GetUserByEmail(commit.Author.Email)
 		}
 
 		// If the commit author is not registered in our database, skip logging this commit
@@ -39,7 +37,7 @@ func HandlePush(c *gin.Context) {
 		}
 
 		// Prevent duplicate activities for the same commit
-		existing, err := queries.FindCommitActivityBySHA(commit.ID)
+		existing, err := h.q.FindCommitActivityBySHA(commit.ID)
 		if err == nil && existing != nil {
 			continue
 		}
@@ -54,6 +52,7 @@ func HandlePush(c *gin.Context) {
 
 		payloadJSON, err := json.Marshal(activityPayload)
 		if err != nil {
+			c.Error(err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to encode payload",
 			})
@@ -67,8 +66,9 @@ func HandlePush(c *gin.Context) {
 			LoggedAt: commit.Timestamp,
 		}
 
-		err = queries.CreateActivity(activity)
+		err = h.q.CreateActivity(activity)
 		if err != nil {
+			c.Error(err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to save activity",
 			})

@@ -2,38 +2,51 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/config"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
+	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/worker"
 	"github.com/gin-contrib/cors"
-
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	cfg := config.Load()
 	l := middleware.LogGet()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	db, err := database.ConnectDB(cfg.DatabaseURL, l)
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed to connect to database")
+	}
+	defer db.Close()
+
+	q := queries.New(db)
+
+	container := handlers.NewContainer(q, cfg, l)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	syncWorker := worker.NewSyncWorker(container.Metrics, l)
+
+	go syncWorker.Start(ctx)
+
+	if cfg.EnableMetricWorker {
+		go worker.StartMetricsWorker(ctx, q, cfg, l)
+	} else {
+		l.Info().Msg("Background metrics worker is disabled")
 	}
 
-	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+	corsConfig := cors.Config{
+		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -41,52 +54,25 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}
 
-	database.ConnectDB()
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	go worker.StartSyncWorker(ctx)
-
-	if os.Getenv("ENABLE_METRICS_TOGGLE") == "true" {
-		go worker.StartMetricsWorker(ctx)
-	} else {
-		l.Info().Msg("Background metrics worker is disabled")
-	}
-
 	r := gin.New()
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.Recovery())
-	r.Use(cors.New(config))
+	r.Use(cors.New(corsConfig))
 
-	r.POST("/api/v1/webhook/github", handlers.HandleWebhook)
-	r.POST("/api/v1/auth/login", handlers.HandleGithubLogin)
-	r.GET("/api/v1/admin/users", handlers.GetUsers)
-	r.PUT("/api/v1/admin/users/:id/role", handlers.UpdateUserRole)
-	r.DELETE("/api/v1/admin/users/:id", handlers.DeleteUser)
-	r.POST("/api/v1/admin/users", handlers.CreateUser)
-
-	protected := r.Group("/api/v1")
-	protected.Use(middleware.AuthRequired())
-	{
-		protected.GET("/activities", handlers.GetActivities)
-		protected.GET("/dashboard", handlers.GetDashboard)
-		protected.GET("/profile", handlers.GetGitHubProfile)
-		protected.POST("/sync", handlers.HandleSync)
-		protected.GET("/metrics", handlers.HandleMetrics)
-		protected.GET("/teams", handlers.GetTeams)
-		protected.GET("/last-sync", handlers.GetLastSync)
-		protected.GET("/metrics/users", handlers.HandleMetricDropDown)
-		protected.GET("/metrics/user/:id", handlers.HandleUserMetrics)
-	}
+	container.RegisterRoutes(r)
 
 	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: r,
+		Addr:         ":" + cfg.Port,
+		Handler:      r,
+		ReadTimeout:  20 * time.Second,
+		WriteTimeout: 20 * time.Second,
+		IdleTimeout:  2 * time.Minute,
 	}
+
 	l.Info().
-		Str("port", port).
-		Msgf("Starting Team Pulse Metrics Server on port '%s'", port)
+		Str("port", cfg.Port).
+		Str("env", cfg.AppEnv).
+		Msgf("Starting Team Pulse Metrics Server on port '%s'", cfg.Port)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -95,7 +81,7 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	l.Info().Msg("ShutDown signal received. Cleaning up resources...")
+	l.Info().Msg("Shutdown signal received. Cleaning up resources...")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()

@@ -3,11 +3,10 @@ package queries
 import (
 	"github.com/google/uuid"
 
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/database"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 )
 
-func GetUserByID(id uuid.UUID) (*models.Users, error) {
+func (q *Queries) GetUserByID(id uuid.UUID) (*models.Users, error) {
 	var user models.Users
 
 	query := `
@@ -27,7 +26,7 @@ func GetUserByID(id uuid.UUID) (*models.Users, error) {
 		WHERE id = $1
 	`
 
-	err := database.DB.QueryRow(query, id).Scan(
+	err := q.db.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Email,
 
@@ -47,7 +46,7 @@ func GetUserByID(id uuid.UUID) (*models.Users, error) {
 
 	return &user, nil
 }
-func GetUserByEmail(email string) (*models.Users, error) {
+func (q *Queries) GetUserByEmail(email string) (*models.Users, error) {
 	var user models.Users
 
 	query := `
@@ -67,7 +66,7 @@ func GetUserByEmail(email string) (*models.Users, error) {
 		WHERE email = $1
 	`
 
-	err := database.DB.QueryRow(query, email).Scan(
+	err := q.db.QueryRow(query, email).Scan(
 		&user.ID,
 		&user.Email,
 
@@ -87,7 +86,7 @@ func GetUserByEmail(email string) (*models.Users, error) {
 
 	return &user, nil
 }
-func GetAllUsers() ([]models.Users, error) {
+func (q *Queries) GetAllUsers() ([]models.Users, error) {
 	query := `
 		SELECT
 			id,
@@ -104,7 +103,7 @@ func GetAllUsers() ([]models.Users, error) {
 		FROM users
 	`
 
-	rows, err := database.DB.Query(query)
+	rows, err := q.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +137,7 @@ func GetAllUsers() ([]models.Users, error) {
 	return users, nil
 }
 
-func CreateUser(user *models.Users) (*models.Users, error) {
+func (q *Queries) CreateUser(user *models.Users) (*models.Users, error) {
 	query := `
 			INSERT INTO users (
 				email,
@@ -162,7 +161,7 @@ func CreateUser(user *models.Users) (*models.Users, error) {
 				created_at,
 				updated_at
 			`
-	err := database.DB.QueryRow(
+	err := q.db.QueryRow(
 		query,
 		user.Email,
 		user.FirstName,
@@ -190,7 +189,7 @@ func CreateUser(user *models.Users) (*models.Users, error) {
 
 }
 
-func GetUserByGithubUsername(username string) (*models.Users, error) {
+func (q *Queries) GetUserByGithubUsername(username string) (*models.Users, error) {
 	var user models.Users
 
 	query := `SELECT
@@ -206,7 +205,7 @@ func GetUserByGithubUsername(username string) (*models.Users, error) {
 		FROM users
 		WHERE github_username = $1;`
 
-	err := database.DB.QueryRow(query, username).Scan(
+	err := q.db.QueryRow(query, username).Scan(
 		&user.ID,
 		&user.Email,
 
@@ -226,7 +225,7 @@ func GetUserByGithubUsername(username string) (*models.Users, error) {
 	return &user, nil
 }
 
-func GetUserByGithubID(githubID string) (*models.Users, error) {
+func (q *Queries) GetUserByGithubID(githubID string) (*models.Users, error) {
 	var user models.Users
 
 	query := `
@@ -246,7 +245,7 @@ func GetUserByGithubID(githubID string) (*models.Users, error) {
 		WHERE github_id = $1
 	`
 
-	err := database.DB.QueryRow(query, githubID).Scan(
+	err := q.db.QueryRow(query, githubID).Scan(
 		&user.ID,
 		&user.Email,
 
@@ -267,26 +266,26 @@ func GetUserByGithubID(githubID string) (*models.Users, error) {
 	return &user, nil
 
 }
-func UpdateUserRole(id string, role string) error {
+func (q *Queries) UpdateUserRole(id string, role string) error {
 	query := `
 		UPDATE users
 		SET role = $1
 		WHERE id = $2
 	`
 
-	_, err := database.DB.Exec(query, role, id)
+	_, err := q.db.Exec(query, role, id)
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
-func DeleteUser(id string) error {
+func (q *Queries) DeleteUser(id string) error {
 	query := `
 		DELETE FROM users
 		WHERE id = $1
 	`
 
-	_, err := database.DB.Exec(query, id)
+	_, err := q.db.Exec(query, id)
 	return err
 }

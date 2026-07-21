@@ -2,32 +2,28 @@ package database
 
 import (
 	"database/sql"
-	"log"
-	"os"
+	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // 👈 The new driver registration!
-	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
 )
 
-var DB *sql.DB
+func ConnectDB(dbURL string, log zerolog.Logger) (*sql.DB, error) {
+	if dbURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL environment variable is empty")
+	}
 
-func ConnectDB() {
-	err := godotenv.Load()
+	db, err := sql.Open("pgx", dbURL)
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Error().Err(err).Msg("failed to open pgx database connection")
+		return nil, err
 	}
 
-	conStr := os.Getenv("DATABASE_URL")
-
-	// 👈 Change "postgres" to "pgx" right here
-	DB, err = sql.Open("pgx", conStr)
-	if err != nil {
-		log.Fatal(err)
+	if err = db.Ping(); err != nil {
+		log.Error().Err(err).Msg("failed to ping PostgreSQL database")
+		return nil, err
 	}
 
-	if err = DB.Ping(); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Connected to PostgreSQL using pgx driver!")
+	log.Info().Msg("Connected to PostgreSQL using pgx driver successfully!")
+	return db, nil
 }

@@ -5,19 +5,26 @@ import (
 	"time"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/handlers"
-	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/middleware"
+	"github.com/rs/zerolog"
 )
 
-func RunSync() {
-	handlers.RunSync()
+type SyncWorker struct {
+	metricsHandler *handlers.MetricsHandler
+	log            zerolog.Logger
 }
 
-func StartSyncWorker(ctx context.Context) {
-	l := middleware.LogGet()
-	l.Info().Msg("Background Sync worker initialized")
-	l.Info().Msg("Running initial GitHub sync on boot...")
+func NewSyncWorker(mh *handlers.MetricsHandler, log zerolog.Logger) *SyncWorker {
+	return &SyncWorker{
+		metricsHandler: mh,
+		log:            log,
+	}
+}
 
-	go RunSync()
+func (w *SyncWorker) Start(ctx context.Context) {
+	w.log.Info().Msg("Background Sync worker initialized")
+	w.log.Info().Msg("Running initial GitHub sync on boot...")
+
+	go w.metricsHandler.RunSync()
 
 	ticker := time.NewTicker(12 * time.Hour)
 	defer ticker.Stop()
@@ -25,11 +32,11 @@ func StartSyncWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			l.Info().Msg("Stopping background sync worker...")
+			w.log.Info().Msg("Stopping background sync worker...")
 			return
 		case <-ticker.C:
-			l.Info().Msg("Starting scheduled 12-hour sync...")
-			go RunSync()
+			w.log.Info().Msg("Starting scheduled 12-hour sync...")
+			go w.metricsHandler.RunSync()
 		}
 	}
 }
