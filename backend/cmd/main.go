@@ -74,6 +74,8 @@ func main() {
 		protected.GET("/metrics", handlers.HandleMetrics)
 		protected.GET("/teams", handlers.GetTeams)
 		protected.GET("/last-sync", handlers.GetLastSync)
+		protected.GET("/metrics/users", handlers.HandleMetricDropDown)
+		protected.GET("/metrics/user/:id", handlers.HandleUserMetrics)
 	}
 
 	srv := &http.Server{
