@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/models"
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/queries"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func HandleMetrics(c *gin.Context) {
@@ -13,6 +15,7 @@ func HandleMetrics(c *gin.Context) {
 	if err != nil {
 		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error:": "failed to collect weekly team metric snapshot"})
+		return
 	}
 
 	monthlyRecords, err := queries.GetTeamMonthlyMetrics()
@@ -21,45 +24,52 @@ func HandleMetrics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to collect monthly team data metric"})
 		return
 	}
+	responsePayload := models.CreateUnifiedResponse(weeklyRecords, monthlyRecords)
 
-	var commitsWeekly, velocityWeekly, tasksWeekly, issuesWeekly []models.MetricCoordinate
-	var commitsMonthly, velocityMonthly, tasksMonthly, issuesMonthly []models.MetricCoordinate
+	c.JSON(http.StatusOK, responsePayload)
+}
 
-	for _, record := range weeklyRecords {
-		weekLabel := record.WindowStart.Format("Jan _2")
-
-		commitsWeekly = append(commitsWeekly, models.MetricCoordinate{Label: weekLabel, Value: float64(record.TotalCommits)})
-		velocityWeekly = append(velocityWeekly, models.MetricCoordinate{Label: weekLabel, Value: float64(record.VelocityScore)})
-		tasksWeekly = append(tasksWeekly, models.MetricCoordinate{Label: weekLabel, Value: float64(record.TasksResolved)})
-		issuesWeekly = append(issuesWeekly, models.MetricCoordinate{Label: weekLabel, Value: float64(record.OpenIssues)})
+func HandleMetricDropDown(c *gin.Context) {
+	users, err := queries.GetUsersFromMetrics()
+	if err != nil {
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to pull matching user profiles"})
+		return
 	}
 
-	for _, record := range monthlyRecords {
-		monthLabel := record.WindowStart.Format("Jan")
+	c.JSON(http.StatusOK, users)
+}
 
-		commitsMonthly = append(commitsMonthly, models.MetricCoordinate{Label: monthLabel, Value: float64(record.TotalCommits)})
-		velocityMonthly = append(velocityMonthly, models.MetricCoordinate{Label: monthLabel, Value: float64(record.VelocityScore)})
-		tasksMonthly = append(tasksMonthly, models.MetricCoordinate{Label: monthLabel, Value: float64(record.TasksResolved)})
-		issuesMonthly = append(issuesMonthly, models.MetricCoordinate{Label: monthLabel, Value: float64(record.OpenIssues)})
+func HandleUserMetrics(c *gin.Context) {
+	idParam := c.Param("id")
+	if idParam == "" {
+		c.Error(errors.New("Query param 'id' is required"))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query param 'id' is required"})
+		return
 	}
 
-	responsePayload := models.UnifiedTeamMetricsResponse{
-		Commits: models.ChartTimeline{
-			Weekly:  commitsWeekly,
-			Monthly: commitsMonthly,
-		},
-		VelocityScore: models.ChartTimeline{
-			Weekly:  velocityWeekly,
-			Monthly: velocityMonthly,
-		},
-		TasksResolved: models.ChartTimeline{
-			Weekly:  tasksWeekly,
-			Monthly: tasksMonthly,
-		},
-		OpenIssues: models.ChartTimeline{
-			Weekly:  issuesWeekly,
-			Monthly: issuesMonthly,
-		},
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.Error(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user UUID format"})
+		return
 	}
+
+	weeklyMetrics, err := queries.GetWeeklySnapshotsByUserID(userID)
+	if err != nil {
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load historical chart data"})
+		return
+	}
+
+	monthlyMetrics, err := queries.GetMonthlySnapshotsByUserID(userID)
+	if err != nil {
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load historical chart data"})
+		return
+	}
+
+	responsePayload := models.CreateUnifiedResponse(weeklyMetrics, monthlyMetrics)
+
 	c.JSON(http.StatusOK, responsePayload)
 }
