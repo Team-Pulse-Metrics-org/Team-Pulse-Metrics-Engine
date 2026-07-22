@@ -68,9 +68,12 @@ const AuthCallback: React.FC = () => {
           return response.json() as Promise<LoginResponse>;
         })
         .then((data) => {
-          localStorage.setItem("app_token", data.token);
-          navigate("/dashboard");
-        })
+  localStorage.setItem("app_token", data.token);
+  localStorage.setItem("role", data.user.role);
+  localStorage.setItem("user_id", data.user.id);
+
+  navigate("/dashboard");
+})
         .catch((error) => {
           console.error("Auth exchange failed", error);
           setErrorMessage(error.message || "Internal Server Error");
