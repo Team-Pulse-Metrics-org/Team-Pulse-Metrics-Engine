@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+
 	"net/http"
 
 	"github.com/Sheikh-Fahad-Ahmed/Team-Pulse-Metrics-Engine/internal/config"
@@ -26,22 +27,66 @@ func NewMetricsHandler(q *queries.Queries, cfg *config.Config, log zerolog.Logge
 	}
 }
 
+/*
 func (h *MetricsHandler) HandleMetrics(c *gin.Context) {
-	weeklyRecords, err := h.q.GetTeamWeeklyMetrics()
+
+weeklyRecords, err := h.q.GetTeamWeeklyMetrics()
+
 	if err != nil {
 		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to collect weekly team metric snapshot"})
 		return
 	}
+*/
+func (h *MetricsHandler) HandleMetrics(c *gin.Context) {
+	role := c.GetString("role")
 
-	monthlyRecords, err := h.q.GetTeamMonthlyMetrics()
+	userIDString := c.GetString("user_id")
+
+	userID, err := uuid.Parse(userIDString)
+
 	if err != nil {
-		c.Error(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to collect monthly team data metric"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid user id",
+		})
 		return
 	}
-	responsePayload := models.CreateUnifiedResponse(weeklyRecords, monthlyRecords)
 
+	var weeklyRecords []models.MetricsSnapshot
+	var monthlyRecords []models.MetricsSnapshot
+	//var err error
+
+	if role == "developer" {
+
+		weeklyRecords, err = h.q.GetWeeklySnapshotsByUserID(userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load user metrics"})
+			return
+		}
+
+		monthlyRecords, err = h.q.GetMonthlySnapshotsByUserID(userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load user metrics"})
+			return
+		}
+
+	} else {
+
+		// Lead and Admin see team metrics
+		weeklyRecords, err = h.q.GetTeamWeeklyMetrics()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load team metrics"})
+			return
+		}
+
+		monthlyRecords, err = h.q.GetTeamMonthlyMetrics()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load team metrics"})
+			return
+		}
+	}
+
+	responsePayload := models.CreateUnifiedResponse(weeklyRecords, monthlyRecords)
 	c.JSON(http.StatusOK, responsePayload)
 }
 
@@ -65,6 +110,15 @@ func (h *MetricsHandler) HandleUserMetrics(c *gin.Context) {
 	}
 
 	userID, err := uuid.Parse(idParam)
+	role := c.GetString("role")
+	loggedInUser := c.GetString("user_id")
+
+	if role == "developer" && loggedInUser != userID.String() {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "access denied",
+		})
+		return
+	}
 	if err != nil {
 		c.Error(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user UUID format"})

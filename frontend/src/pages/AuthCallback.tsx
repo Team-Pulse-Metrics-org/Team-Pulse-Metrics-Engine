@@ -73,7 +73,7 @@ const AuthCallback: React.FC = () => {
   localStorage.setItem("app_token", data.token);
   localStorage.setItem("role", data.user.role);
   localStorage.setItem("user_id", data.user.id);
-
+  localStorage.setItem("email", data.user.email);
   navigate("/dashboard");
 })
         .catch((error) => {

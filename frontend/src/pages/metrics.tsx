@@ -36,7 +36,11 @@ function Metrics() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<TimeFrame>("weekly");
-  const [selectedView, setSelectedView] = useState<string>("team");
+  const role = localStorage.getItem("role");
+
+  const [selectedView, setSelectedView] = useState(
+  role === "developer" ? "me" : "team"
+);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
@@ -57,7 +61,7 @@ function Metrics() {
 
   useEffect(() => {
     const token = localStorage.getItem("app_token");
-
+   
     if (!token) {
       window.location.href = "/login";
       return;
@@ -141,7 +145,12 @@ function Metrics() {
   }
 
   const activePeriodLabel = timeframe === "weekly" ? "Weekly" : "Monthly";
-  const contextLabel = selectedView === "team" ? "Team" : "Developer";
+ const contextLabel =
+  role === "developer"
+    ? "My"
+    : selectedView === "team"
+    ? "Team"
+    : "Developer";
 
   return (
     <div className="bg-slate-950 min-h-screen p-8 text-slate-100 w-full">
@@ -152,9 +161,11 @@ function Metrics() {
             Metrics Hub
           </h1>
           <p className="text-slate-400 mt-1">
-            {selectedView === "team"
-              ? "Engineering aggregate performance analytics"
-              : "Individual contribution breakdown analytics"}
+            {role === "developer"
+            ? "Your personal performance analytics"
+            : selectedView === "team"
+            ? "Engineering aggregate performance analytics"
+            : "Individual contribution breakdown analytics"}
           </p>
         </div>
 
@@ -168,23 +179,28 @@ function Metrics() {
                 <User className="h-4 w-4 text-cyan-400" />
               )}
               <select
-                value={selectedView}
-                onChange={(e) => setSelectedView(e.target.value)}
-                className="bg-transparent focus:outline-none cursor-pointer pr-2 text-slate-200 font-medium"
-              >
-                <option value="team" className="bg-slate-900 text-slate-200">
-                  Team
-                </option>
-                {teamMembers.map((member) => (
-                  <option
-                    key={member.user_id}
-                    value={member.user_id}
-                    className="bg-slate-900 text-slate-200"
-                  >
-                    {member.label}
-                  </option>
-                ))}
-              </select>
+  value={selectedView}
+  onChange={(e) => setSelectedView(e.target.value)}
+  className="bg-transparent focus:outline-none cursor-pointer pr-2 text-slate-200 font-medium"
+>
+  {role === "developer" ? (
+    <option value="me">My Metrics</option>
+  ) : (
+    <>
+      <option value="team">Team</option>
+
+      {teamMembers.map((member) => (
+        <option
+          key={member.user_id}
+          value={member.user_id}
+          className="bg-slate-900 text-slate-200"
+        >
+          {member.label}
+        </option>
+      ))}
+    </>
+  )}
+</select>
             </div>
           </div>
 
