@@ -46,6 +46,8 @@ interface DashboardData {
   }>;
 }
 
+const API = import.meta.env.VITE_API_URL;
+
 function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ function Dashboard() {
       return;
     }
 
-    fetch("http://localhost:8080/api/v1/dashboard", {
+    fetch(`${API}/api/v1/dashboard`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -109,7 +111,7 @@ function Dashboard() {
     setSyncSuccess(false);
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/sync", {
+      const response = await fetch(`${API}/api/v1/sync`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -149,7 +151,7 @@ function Dashboard() {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/last-sync", {
+      const response = await fetch(`${API}/api/v1/last-sync`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
