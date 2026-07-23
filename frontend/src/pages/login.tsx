@@ -5,9 +5,10 @@ import { LuSun, LuMoon } from "react-icons/lu";
 
 function handleGitHubLogin() {
   const CLIENT_ID: string = import.meta.env.VITE_GITHUB_CLIENT_ID;
+  const APP_URL = import.meta.env.VITE_APP_URL;
   console.log(CLIENT_ID);
 
-  const REDIRECT_URI: string = "http://localhost:5173/auth/callback";
+  const REDIRECT_URI = `${APP_URL}/auth/callback`;
   const SCOPE: string = "user,public_repo";
 
   const githubAuthUrl: string = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPE}`;
@@ -41,11 +42,11 @@ const Login: React.FC = () => {
     <div className="bg-slate-950 h-screen w-full overflow-y-auto flex flex-col items-center justify-center p-6 text-slate-100">
       {/* Outer Card Wrapper */}
       <div className="relative max-w-4xl w-full mx-auto h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900 grid grid-cols-1 md:grid-cols-2">
-        
+
         {/* Left Side: Graphic / Image (Theme-aware graphic) */}
         <div className={`relative hidden md:flex flex-col justify-between p-12 overflow-hidden select-none transition-colors duration-300
-          ${theme === "dark" 
-            ? "bg-black" 
+          ${theme === "dark"
+            ? "bg-black"
             : "bg-gradient-to-br from-indigo-50 via-purple-50 to-cyan-50"
           }`}
         >
@@ -59,8 +60,8 @@ const Login: React.FC = () => {
 
           {/* Theme-Aware Overlay Gradient */}
           <div className={`absolute inset-0 z-10 transition-all duration-300
-            ${theme === "dark" 
-              ? "bg-gradient-to-tr from-indigo-950/95 via-slate-950/70 to-indigo-950/30" 
+            ${theme === "dark"
+              ? "bg-gradient-to-tr from-indigo-950/95 via-slate-950/70 to-indigo-950/30"
               : "bg-gradient-to-tr from-indigo-50/90 via-white/85 to-purple-50/90"}`}
           />
 
@@ -69,7 +70,7 @@ const Login: React.FC = () => {
             ${theme === "dark"
               ? "bg-[radial-gradient(rgba(255,255,255,0.05)_1px,transparent_1px)]"
               : "bg-[radial-gradient(rgba(99,102,241,0.08)_1px,transparent_1px)]"} 
-            [background-size:16px_16px]`} 
+            [background-size:16px_16px]`}
           />
 
           {/* Left panel contents. Uses theme-aware text colors */}
@@ -98,7 +99,7 @@ const Login: React.FC = () => {
             >
               Track commits, analyze pull requests, monitor active tasks, and identify team blockers instantly.
             </p>
-            
+
             {/* Visual Stats Indicators */}
             <div className={`flex gap-4 mt-4 pt-4 border-t text-xs
               ${theme === "dark" ? "border-white/10 text-slate-300" : "border-slate-200 text-slate-700"}`}
@@ -120,7 +121,7 @@ const Login: React.FC = () => {
 
         {/* Right Side: Auth Form (Theme-sensitive) */}
         <div className="relative flex flex-col justify-between p-12 bg-transparent z-25">
-          
+
           {/* Top-Right Theme Toggle */}
           <div className="absolute top-8 right-8">
             <button
@@ -153,7 +154,7 @@ const Login: React.FC = () => {
                 />
                 <span>Continue with GitHub</span>
               </button>
-              
+
               <div className="flex items-center gap-2 text-xs justify-center" style={{ color: "var(--slate-500)" }}>
                 <span>🔒</span>
                 <span>Authorized developer access only</span>
