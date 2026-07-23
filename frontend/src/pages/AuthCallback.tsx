@@ -12,6 +12,8 @@ interface LoginResponse {
   };
 }
 
+const API = import.meta.env.VITE_API_URL;
+
 const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ const AuthCallback: React.FC = () => {
     if (!exchangeTriggered.current) {
       exchangeTriggered.current = true;
 
-      fetch("http://localhost:8080/api/v1/auth/login", {
+      fetch(`${API}/api/v1/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

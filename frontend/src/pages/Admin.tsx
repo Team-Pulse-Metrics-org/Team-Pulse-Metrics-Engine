@@ -8,6 +8,8 @@ interface User {
   last_name: string;
 }
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [firstName, setFirstName] = useState("");
@@ -16,7 +18,7 @@ export default function AdminPage() {
   const [role, setRole] = useState("developer");
   // Fetch all users
   useEffect(() => {
-    fetch("http://localhost:8080/api/v1/admin/users")
+    fetch(`${API}/api/v1/admin/users`)
       .then((res) => res.json())
       .then((data) => setUsers(data))
       .catch((err) => console.error("Error fetching users:", err));
@@ -24,7 +26,7 @@ export default function AdminPage() {
 const handleRoleChange = async (id: string, newRole: string) => {
   try {
     const response = await fetch(
-      `http://localhost:8080/api/v1/admin/users/${id}/role`,
+      `${API}/api/v1/admin/users/${id}/role`,
       {
         method: "PUT",
         headers: {
@@ -54,7 +56,7 @@ const handleRoleChange = async (id: string, newRole: string) => {
 const handleRemove = async (id: string) => {
   try {
     await fetch(
-      `http://localhost:8080/api/v1/admin/users/${id}`,
+      `${API}/api/v1/admin/users/${id}`,
       {
         method: "DELETE",
       }
@@ -68,7 +70,7 @@ const handleRemove = async (id: string) => {
  const handleAddUser = async () => {
   try {
     const response = await fetch(
-      "http://localhost:8080/api/v1/admin/users",
+      `${API}/api/v1/admin/users`,
       {
         method: "POST",
         headers: {

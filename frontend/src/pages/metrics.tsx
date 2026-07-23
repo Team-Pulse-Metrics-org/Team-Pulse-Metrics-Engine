@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MetricBarChart } from "../components/metricBarChart";
-import { AlertCircle, Calendar, Users, User } from "lucide-react";
+import { AlertCircle, Users, User } from "lucide-react";
 import { MetricLineChart } from "../components/metricLineChart";
 
 interface MetricCoordinate {
@@ -27,6 +27,8 @@ interface TeamMember {
 
 type TimeFrame = "weekly" | "monthly";
 
+const API = import.meta.env.VITE_API_URL;
+
 function Metrics() {
   const [metricsData, setMetricsData] = useState<UnifiedMetricsResponse | null>(
     null,
@@ -41,7 +43,7 @@ function Metrics() {
     const token = localStorage.getItem("app_token");
     if (!token) return;
 
-    fetch("http://localhost:8080/api/v1/metrics/users", {
+    fetch(`${API}/api/v1/metrics/users`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -65,8 +67,8 @@ function Metrics() {
 
     const endpoint =
       selectedView === "team"
-        ? "http://localhost:8080/api/v1/metrics"
-        : `http://localhost:8080/api/v1/metrics/user/${selectedView}`;
+        ? `${API}/api/v1/metrics`
+        : `${API}/api/v1/metrics/user/${selectedView}`;
 
     fetch(endpoint, {
       method: "GET",
