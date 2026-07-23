@@ -69,10 +69,12 @@ function Metrics() {
     setLoading(true);
     setError(null);
 
-    const endpoint =
-      selectedView === "team"
-        ? `${API}/api/v1/metrics`
-        : `${API}/api/v1/metrics/user/${selectedView}`;
+   const endpoint =
+   role === "developer"
+    ? `${API}/api/v1/metrics`
+    : selectedView === "team"
+      ? `${API}/api/v1/metrics`
+      : `${API}/api/v1/metrics/user/${selectedView}`;
 
     fetch(endpoint, {
       method: "GET",
