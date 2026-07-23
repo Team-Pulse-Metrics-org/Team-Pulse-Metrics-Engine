@@ -8,13 +8,12 @@ import (
 	"sync"
 	"time"
 
+	adapter "github.com/axiomhq/axiom-go/adapters/zerolog"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var once sync.Once
-
 var log zerolog.Logger
 
 func LogGet() zerolog.Logger {
@@ -27,27 +26,32 @@ func LogGet() zerolog.Logger {
 			logLevel = int(zerolog.InfoLevel)
 		}
 
-		var output io.Writer = zerolog.ConsoleWriter{
-			Out:        os.Stdout,
-			TimeFormat: time.RFC3339,
-		}
+		var output io.Writer
 
-		if os.Getenv("APP_ENV") != "development" {
-			fileLogger := &lumberjack.Logger{
-				Filename:   "team-pulse.log",
-				MaxSize:    5,
-				MaxBackups: 10,
-				MaxAge:     20,
-				Compress:   true,
+		if os.Getenv("APP_ENV") == "development" {
+			output = zerolog.ConsoleWriter{
+				Out:        os.Stdout,
+				TimeFormat: time.RFC3339,
 			}
-
-			output = zerolog.MultiLevelWriter(os.Stderr, fileLogger)
+		} else {
+			// Production
+			axiomWriter, err := adapter.New()
+			if err != nil {
+				// Fallback
+				output = os.Stderr
+			} else {
+				output = io.MultiWriter(os.Stderr, axiomWriter)
+			}
 		}
 
 		buildInfo, _ := debug.ReadBuildInfo()
 
-		log = zerolog.New(output).Level(zerolog.Level(logLevel)).With().Timestamp().Str("go_version", buildInfo.GoVersion).Logger()
-
+		log = zerolog.New(output).
+			Level(zerolog.Level(logLevel)).
+			With().
+			Timestamp().
+			Str("go_version", buildInfo.GoVersion).
+			Logger()
 	})
 
 	return log

@@ -9,13 +9,15 @@ interface Developer {
   openIssues: number;
 }
 
+const API = import.meta.env.VITE_API_URL;
+
 function Teams() {
   const navigate = useNavigate();
    const [developers, setDevelopers] = useState<Developer[]>([]);
    useEffect(() => {
   const token = localStorage.getItem("app_token");
 
-  fetch("http://localhost:8080/api/v1/teams", {
+  fetch(`${API}/api/v1/teams`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

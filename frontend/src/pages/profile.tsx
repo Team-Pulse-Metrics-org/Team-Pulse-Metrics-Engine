@@ -12,6 +12,8 @@ interface ProfileData {
   following: number;
 }
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Profile() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function Profile() {
       return;
     }
 
-    fetch("http://localhost:8080/api/v1/profile", {
+    fetch(`${API}/api/v1/profile`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 
 //activity page component
+const API = import.meta.env.VITE_API_URL;
+
 export default function Activity() {
   const [activities, setActivities] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -29,7 +31,7 @@ export default function Activity() {
       return;
     }
 
-    fetch("http://localhost:8080/api/v1/activities", {
+    fetch(`${API}/api/v1/activities`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
