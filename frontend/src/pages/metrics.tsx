@@ -67,10 +67,11 @@ function Metrics() {
     setLoading(true);
     setError(null);
 
-    const endpoint =
-      selectedView === "team"|| selectedView==="me"
-        ? "http://localhost:8080/api/v1/metrics"
-        : `http://localhost:8080/api/v1/metrics/user/${selectedView}`;
+   let endpoint = "http://localhost:8080/api/v1/metrics";
+
+if (selectedView !== "team" && selectedView !== "me") {
+  endpoint = `http://localhost:8080/api/v1/metrics/user/${selectedView}`;
+}
 
     fetch(endpoint, {
       method: "GET",
