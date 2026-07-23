@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MetricBarChart } from "../components/metricBarChart";
-import { AlertCircle, Calendar, Users, User } from "lucide-react";
+import { AlertCircle, Users, User } from "lucide-react";
 import { MetricLineChart } from "../components/metricLineChart";
 
 interface MetricCoordinate {
