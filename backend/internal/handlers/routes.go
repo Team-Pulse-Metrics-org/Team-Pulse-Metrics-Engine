@@ -30,7 +30,7 @@ func (c *Container) RegisterRoutes(r *gin.Engine) {
 	api := r.Group("/api/v1")
 
 	// Public Unprotected Routes
-	api.POST("/webhook/github", c.Webhook.HandleWebhook)
+	api.POST("/webhook/github", middleware.VerifyGithubSignature(c.Webhook.cfg.GithubWebhookSecret, c.Webhook.cfg.AppEnv), c.Webhook.HandleWebhook)
 	api.POST("/auth/login", c.Auth.HandleGithubLogin)
 
 	// Admin Routes
