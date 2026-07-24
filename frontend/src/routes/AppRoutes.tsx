@@ -9,6 +9,7 @@ import Login from "../pages/login";
 import AuthCallback from "../pages/AuthCallback";
 import Home from "../pages/Home";
 import AdminPage from "../pages/Admin";
+import ProtectedRoute from "../components/ProtectedRoute";
 function AppRoutes() {
   return (
     <Routes>
@@ -20,13 +21,35 @@ function AppRoutes() {
       <Route element={<Layout />}>
         {/* <Route index element={<Dashboard />} /> */}
         
-        <Route path="dashboard" element={<Dashboard />} />
+        {/*<Route path="dashboard" element={<Dashboard />} /> */}
+        <Route
+        path="dashboard"
+        element={
+    <ProtectedRoute allowedRoles={["administrator", "lead", "developer"]}>
+        <Dashboard />
+    </ProtectedRoute>
+  }
+/>
         <Route path="profile" element={<Profile />} />
         <Route path="metrics" element={<Metrics />} />
         <Route path="activity" element={<Activity />} />
-        <Route path="teams" element={<Teams />} />
-        <Route path="admin" element={<AdminPage />} />
-
+        {/*<Route path="teams" element={<Teams />} />*/}
+        <Route
+          path="teams"
+         element={
+        <ProtectedRoute allowedRoles={["administrator", "lead"]}>
+          <Teams />
+        </ProtectedRoute>
+        }
+      />
+        <Route
+        path="admin"
+        element={
+        <ProtectedRoute allowedRoles={["administrator"]}>
+      <AdminPage />
+    </ProtectedRoute>
+      }
+    />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

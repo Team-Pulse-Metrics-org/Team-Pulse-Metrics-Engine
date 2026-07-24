@@ -63,7 +63,7 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.7.0 // indirect
 	golang.org/x/arch v0.28.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect

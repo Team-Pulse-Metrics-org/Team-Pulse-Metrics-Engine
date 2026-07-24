@@ -12,6 +12,8 @@ interface LoginResponse {
   };
 }
 
+const API = import.meta.env.VITE_API_URL;
+
 const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ const AuthCallback: React.FC = () => {
     if (!exchangeTriggered.current) {
       exchangeTriggered.current = true;
 
-      fetch("http://localhost:8080/api/v1/auth/login", {
+      fetch(`${API}/api/v1/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,9 +70,12 @@ const AuthCallback: React.FC = () => {
           return response.json() as Promise<LoginResponse>;
         })
         .then((data) => {
-          localStorage.setItem("app_token", data.token);
-          navigate("/dashboard");
-        })
+  localStorage.setItem("app_token", data.token);
+  localStorage.setItem("role", data.user.role);
+  localStorage.setItem("user_id", data.user.id);
+  localStorage.setItem("email", data.user.email);
+  navigate("/dashboard");
+})
         .catch((error) => {
           console.error("Auth exchange failed", error);
           setErrorMessage(error.message || "Internal Server Error");
