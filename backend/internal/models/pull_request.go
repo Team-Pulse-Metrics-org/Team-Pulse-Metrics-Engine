@@ -34,6 +34,10 @@ type PullRequest struct {
 		Ref string `json:"ref"`
 	} `json:"base"`
 
+	MergedBy *struct {
+		Login string `json:"login"`
+	} `json:"merged_by"`
+
 	CreatedAt time.Time `json:"created_at"`
 	ClosedAt  time.Time `json:"closed_at"`
 	MergedAt  time.Time `json:"merged_at"`
