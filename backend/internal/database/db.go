@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // 👈 The new driver registration!
 	"github.com/rs/zerolog"
@@ -19,11 +20,18 @@ func ConnectDB(dbURL string, log zerolog.Logger) (*sql.DB, error) {
 		return nil, err
 	}
 
+	db.SetMaxOpenConns(15)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
+
+	start := time.Now()
 	if err = db.Ping(); err != nil {
 		log.Error().Err(err).Msg("failed to ping PostgreSQL database")
 		return nil, err
 	}
+	pingDuration := time.Since(start)
 
-	log.Info().Msg("Connected to PostgreSQL using pgx driver successfully!")
+	log.Info().Dur("ping_ms", pingDuration).Msg("Connected to PostgreSQL using pgx driver successfully!")
 	return db, nil
 }
