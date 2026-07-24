@@ -27,13 +27,14 @@ func (h *WebhookHandler) HandlePullRequest(c *gin.Context) {
 		return
 	}
 
-	user, err := h.q.GetUserByGithubUsername(payload.Sender.Login)
-	if err != nil {
-		c.Error(err)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Github account not linked",
-		})
-		return
+	actionUsername := payload.Sender.Login
+	if payload.PullRequest.Merged && payload.PullRequest.MergedBy != nil && payload.PullRequest.MergedBy.Login != "" {
+		actionUsername = payload.PullRequest.MergedBy.Login
+	}
+
+	actionUserID := creator.ID
+	if actionUser, err := h.q.GetUserByGithubUsername(actionUsername); err == nil {
+		actionUserID = actionUser.ID
 	}
 
 	activityPayload := map[string]any{
@@ -43,7 +44,9 @@ func (h *WebhookHandler) HandlePullRequest(c *gin.Context) {
 		"state":              payload.PullRequest.State,
 		"merged":             payload.PullRequest.Merged,
 		"created_by_user_id": creator.ID,
-		"action_by_user_id":  user.ID,
+		"action_by_user_id":  actionUserID,
+		"action_by":          actionUsername,
+		"created_by":         payload.PullRequest.User.Login,
 		"source_branch":      payload.PullRequest.Head.Ref,
 		"target_branch":      payload.PullRequest.Base.Ref,
 
@@ -84,10 +87,9 @@ func (h *WebhookHandler) HandlePullRequest(c *gin.Context) {
 	}
 
 	activity := models.Activities{
-		UserID:  user.ID,
-		Type:    models.ActivityPullRequestClosed,
-		Payload: payloadJSON,
-
+		UserID:   actionUserID,
+		Type:     models.ActivityPullRequestClosed,
+		Payload:  payloadJSON,
 		LoggedAt: loggedAt,
 	}
 
