@@ -403,10 +403,37 @@ func (h *MetricsHandler) SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCoun
 				continue
 			}
 
-			actionUser := creator
+			// Since GET /repos/{owner}/{repo}/pulls does not return merged_by,
+			// fetch the single pull request detail for the merged PR.
+			var mergedByLogin string
+			singlePRUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%d", owner, repo, pr.Number)
+			singleReq, err := http.NewRequest("GET", singlePRUrl, nil)
+			if err == nil {
+				singleReq.Header.Set("Authorization", "Bearer "+token)
+				singleReq.Header.Set("Accept", "application/vnd.github+json")
+				singleReq.Header.Set("User-Agent", "Team-Pulse-Metrics-Engine")
 
-			if pr.MergedBy != nil {
-				if merger, err := h.q.GetUserByGithubUsername(pr.MergedBy.Login); err == nil {
+				singleResp, err := client.Do(singleReq)
+				if err == nil {
+					if singleResp.StatusCode == http.StatusOK {
+						var singlePR struct {
+							MergedBy *struct {
+								Login string `json:"login"`
+							} `json:"merged_by"`
+						}
+						if err := json.NewDecoder(singleResp.Body).Decode(&singlePR); err == nil && singlePR.MergedBy != nil {
+							mergedByLogin = singlePR.MergedBy.Login
+						}
+					}
+					singleResp.Body.Close()
+				}
+			}
+
+			actionUser := creator
+			actionUsername := pr.User.Login
+			if mergedByLogin != "" {
+				actionUsername = mergedByLogin
+				if merger, err := h.q.GetUserByGithubUsername(mergedByLogin); err == nil {
 					actionUser = merger
 				}
 			}
@@ -425,6 +452,8 @@ func (h *MetricsHandler) SyncPR(cfg GithubSyncConfig, since time.Time) (SyncCoun
 
 				"created_by_user_id": creator.ID,
 				"action_by_user_id":  actionUser.ID,
+				"action_by":          actionUsername,
+				"created_by":         pr.User.Login,
 
 				"source_branch": pr.Head.Ref,
 				"target_branch": pr.Base.Ref,
